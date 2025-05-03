@@ -43,21 +43,16 @@
   </div>
 
   <!-- Three.js Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
-  <script>
-    // Wait for Three.js to load before loading OrbitControls
-    document.addEventListener('DOMContentLoaded', function() {
-      const script = document.createElement('script');
-      script.src = "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js";
-      script.onload = function() {
-        // Once OrbitControls is loaded, load our application script
-        const appScript = document.createElement('script');
-        appScript.src = "/static/infinite_chessboard.js";
-        document.body.appendChild(appScript);
-      };
-      document.body.appendChild(script);
-    });
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+      }
+    }
   </script>
+  
+  <script type="module" src="/static/infinite_chessboard_module.js"></script>
   
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
