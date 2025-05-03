@@ -1,0 +1,38 @@
+Application Description: Infinite Chessboard with Three.js and Flask
+Purpose of the Application:
+This project is a demonstration of an infinite procedural chessboard implemented using Three.js for 3D rendering and Flask as the backend web server. The purpose is to showcase dynamic board generation and potential expansion for games, educational tools, or simulations involving spatial reasoning, AI pathfinding, or abstract gameplay mechanics beyond the traditional 8×8 chess grid.
+
+Key Features:
+
+Infinite Procedural Grid: Chess tiles are generated on-the-fly as the camera moves, simulating an unbounded board.
+
+3D Visualization: The board is rendered in WebGL using Three.js for smooth visual performance and flexibility.
+
+Lightweight Flask Backend: Serves static assets and the core HTML/JS page via a Python-based web server.
+
+Offline and Online Capability: Can run locally or be deployed to the web via platforms like Replit, Render, or Railway.
+
+Extendable Game Logic: Designed to allow easy integration of chess pieces, movement logic, and user interactivity in future versions.
+
+Specific Requirements and Constraints:
+
+Must be able to run on low-resource web servers (compatible with free-tier deployments).
+
+No dependencies on large frameworks or external game engines (lightweight and modular).
+
+Uses only open-source tools: Flask, Three.js, and optionally Python libraries like requests.
+
+Should support WebGL-compatible browsers (Chrome, Firefox, Edge).
+
+Optional offline-first behavior using local Three.js instead of CDN.
+
+Target Users:
+
+Game Developers & Designers: As a sandbox for experimenting with procedural and infinite board mechanics.
+
+Educators & Students: A teaching tool for demonstrating concepts in geometry, infinite sets, or AI logic in game design.
+
+Programmers & Tinkerers: A foundation for building custom abstract games or simulating emergent behavior on an infinite grid.
+
+Mathematics & Logic Enthusiasts: A creative platform for visualizing decision trees or theoretical board configurations.
+
