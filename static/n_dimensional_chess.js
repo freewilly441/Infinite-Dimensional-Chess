@@ -153,6 +153,9 @@ function init() {
   // Load sound effects
   loadSoundEffects();
   
+  // Create dimensional particles
+  createDimensionalParticles();
+  
   // Setup dimensional visualization controls
   setupDimensionalControls();
   
@@ -409,6 +412,73 @@ function toggleDimension(dimension) {
 function updateSliceVisualization(dimension, value) {
   visualizationControls.sliceCoordinates[dimension] = value;
   updateBoardVisualization();
+}
+
+// Create dimensional particle effects
+function createDimensionalParticles() {
+  // Create particles for each active dimension above 3
+  const numDimensions = activeDimensions.length;
+  
+  // Create a particle system for the multi-dimensional effect
+  const particleCount = 3000;
+  const particles = new THREE.BufferGeometry();
+  
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+  
+  // Color selection based on active dimensions
+  const colorOptions = DIMENSION_COLORS.map(color => new THREE.Color(color));
+  
+  // Create particles in a large cube surrounding the board
+  for (let i = 0; i < particleCount; i++) {
+    // Positions
+    const x = (Math.random() - 0.5) * 100;
+    const y = (Math.random() - 0.5) * 100 + 25; // Bias toward above the board
+    const z = (Math.random() - 0.5) * 100;
+    
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+    
+    // Colors - bias toward colors of higher dimensions
+    let colorIndex;
+    if (numDimensions > 3) {
+      // Higher probability for higher dimension colors
+      const dimensionBias = Math.random();
+      if (dimensionBias > 0.6) {
+        // Use higher dimension colors (if available)
+        colorIndex = 3 + Math.floor(Math.random() * (numDimensions - 3));
+      } else {
+        // Use any dimension color
+        colorIndex = Math.floor(Math.random() * numDimensions);
+      }
+    } else {
+      colorIndex = Math.floor(Math.random() * colorOptions.length);
+    }
+    
+    // Ensure colorIndex is within bounds
+    colorIndex = Math.min(colorIndex, colorOptions.length - 1);
+    
+    const color = colorOptions[colorIndex];
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+  
+  particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  
+  const particleMaterial = new THREE.PointsMaterial({
+    size: 0.5,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    sizeAttenuation: true
+  });
+  
+  const particleSystem = new THREE.Points(particles, particleMaterial);
+  particleSystem.name = 'dimensionalParticles';
+  scene.add(particleSystem);
 }
 
 // Initialize the board with standard chess setup
@@ -1599,12 +1669,37 @@ function movePiece(selectedPiece, newCoords) {
   animatePieceMovement(piece.mesh, position.x, position.z, isCapture, originalY);
   
   // Play appropriate sound
-  if (isCapture) {
-    captureSound.currentTime = 0;
-    captureSound.play().catch(e => console.log("Error playing capture sound:", e));
-  } else {
-    moveSound.currentTime = 0;
-    moveSound.play().catch(e => console.log("Error playing move sound:", e));
+  try {
+    if (isCapture && captureSound) {
+      captureSound.currentTime = 0;
+      // Only play if user has interacted with the page
+      if (document.hasFocus()) {
+        const playPromise = captureSound.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(e => {
+            console.log("Sound playback prevented by browser:", e);
+            // Sound playback was prevented, we'll handle this silently
+          });
+        }
+      }
+    } else if (moveSound) {
+      moveSound.currentTime = 0;
+      // Only play if user has interacted with the page
+      if (document.hasFocus()) {
+        const playPromise = moveSound.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(e => {
+            console.log("Sound playback prevented by browser:", e);
+            // Sound playback was prevented, we'll handle this silently
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.log("Error handling sound playback:", e);
+    // Silently fail if sound playback isn't working
   }
   
   // Update the piece's coordinates
