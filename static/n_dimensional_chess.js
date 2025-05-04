@@ -2420,6 +2420,15 @@ function animateDimensionalParticles() {
     // Mark the attribute as needing an update
     particles.geometry.attributes.position.needsUpdate = true;
   }
+  
+  // Animate hyperpiece auras
+  for (const key in pieces) {
+    const piece = pieces[key];
+    if (piece && piece.mesh && piece.mesh.userData.animate) {
+      // Call the stored animation function
+      piece.mesh.userData.animate();
+    }
+  }
 }
 
 // Export the init function to start the application
