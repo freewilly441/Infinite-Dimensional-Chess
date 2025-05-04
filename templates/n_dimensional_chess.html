@@ -255,6 +255,78 @@
     </script>
   </div>
   
+  <!-- Welcome Tutorial Modal -->
+  <div class="modal fade" id="welcome-modal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content welcome-content">
+        <div class="modal-header text-center bg-primary">
+          <h3 class="modal-title w-100 fw-bold" id="welcomeModalLabel">
+            Welcome to N-Dimensional Chess
+          </h3>
+        </div>
+        <div class="modal-body p-4">
+          <div class="welcome-image text-center mb-3">
+            <i class="bi bi-grid-3x3-gap-fill text-primary" style="font-size: 64px;"></i>
+            <i class="bi bi-arrow-right text-white mx-2" style="font-size: 30px;"></i>
+            <i class="bi bi-box text-info" style="font-size: 64px;"></i>
+            <i class="bi bi-arrow-right text-white mx-2" style="font-size: 30px;"></i>
+            <i class="bi bi-stars text-warning" style="font-size: 64px;"></i>
+          </div>
+          
+          <h4 class="text-center text-info mb-3">Experience Chess Beyond 3 Dimensions</h4>
+          
+          <div class="row mb-3">
+            <div class="col-md-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-cursor-fill text-warning" style="font-size: 40px;"></i>
+              </div>
+              <h5>Interactive 3D</h5>
+              <p class="small">Rotate, zoom, and explore the infinite chessboard with intuitive controls</p>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-diagram-3-fill text-success" style="font-size: 40px;"></i>
+              </div>
+              <h5>Dimensional Play</h5>
+              <p class="small">Add up to 6 dimensions with special hyperpieces that move through higher dimensions</p>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-calculator-fill text-info" style="font-size: 40px;"></i>
+              </div>
+              <h5>Mathematical Depth</h5>
+              <p class="small">Explore mathematical complexity scores and formulas behind n-dimensional spaces</p>
+            </div>
+          </div>
+          
+          <div class="text-center mt-4">
+            <p>Click "Start Playing" to begin, then use the "HOW TO PLAY" button for detailed instructions.</p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-primary btn-lg px-5" data-bs-dismiss="modal">
+            Start Playing <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    .welcome-content {
+      background-color: rgba(25, 25, 40, 0.95);
+      border: 3px solid #0088ff;
+      box-shadow: 0 0 30px rgba(0, 136, 255, 0.8);
+    }
+    
+    .feature-icon {
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+  
   <!-- UI Overlay -->
   <div id="ui-overlay">
     <!-- Dimensional Notification Popup -->
@@ -419,12 +491,31 @@
     </div>
   </div>
 
+  <!-- Bootstrap script -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  
   <!-- Main application script -->
   <script type="module">
     import { init } from '/static/n_dimensional_chess.js';
     
     // Initialize the application when the page loads
-    window.addEventListener('DOMContentLoaded', init);
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+      
+      // Show welcome modal automatically after a short delay
+      setTimeout(() => {
+        const welcomeModal = new bootstrap.Modal(document.getElementById('welcome-modal'));
+        welcomeModal.show();
+        
+        // When welcome modal is closed, show help modal
+        document.getElementById('welcome-modal').addEventListener('hidden.bs.modal', function () {
+          setTimeout(() => {
+            const helpModal = new bootstrap.Modal(document.getElementById('help-modal'));
+            helpModal.show();
+          }, 500);
+        });
+      }, 1500);
+    });
   </script>
 </body>
 </html>
