@@ -962,7 +962,7 @@ function createTile(coords) {
   board[key] = tile;
 }
 
-// Create standard chess pieces (in a 2D plane)
+// Create standard chess pieces (in multiple dimensions)
 function createStandardChessPieces() {
   // Define piece types for initial setup
   const backRank = [
@@ -976,7 +976,7 @@ function createStandardChessPieces() {
     PIECE_TYPES.ROOK
   ];
   
-  // Create pieces for both players
+  // Basic 2D chess layout for all players
   for (let x = 0; x < 8; x++) {
     // Create coordinates for each piece
     // Black pieces at one end of the first dimension
@@ -997,11 +997,128 @@ function createStandardChessPieces() {
     whitePawnCoords[0] = x;
     whitePawnCoords[1] = -1;
     
-    // Create pieces
+    // Create pieces on the main 2D plane
     createPiece(blackBackRankCoords, backRank[x], PIECE_COLORS.BLACK);
     createPiece(blackPawnCoords, PIECE_TYPES.PAWN, PIECE_COLORS.BLACK);
     createPiece(whiteBackRankCoords, backRank[x], PIECE_COLORS.WHITE);
     createPiece(whitePawnCoords, PIECE_TYPES.PAWN, PIECE_COLORS.WHITE);
+  }
+  
+  // Add additional pieces in higher dimensions if more than 3 dimensions are active
+  if (activeDimensions.length > 3) {
+    // Place pieces in higher dimensions (4th dimension = index 3)
+    if (activeDimensions.length >= 4) {
+      // Position in 4th dimension
+      const position4D = 1;
+      
+      // Add special pieces at strategic positions in 4th dimension
+      // White pieces
+      const white4DQueenCoords = Array(activeDimensions.length).fill(0);
+      white4DQueenCoords[0] = 3; // X position
+      white4DQueenCoords[1] = -3; // Z position (middle of board)
+      white4DQueenCoords[3] = position4D; // 4th dimension
+      createPiece(white4DQueenCoords, PIECE_TYPES.QUEEN, PIECE_COLORS.WHITE);
+      
+      const white4DRookCoords = Array(activeDimensions.length).fill(0);
+      white4DRookCoords[0] = 0; // X position
+      white4DRookCoords[1] = -3; // Z position (middle of board)
+      white4DRookCoords[3] = position4D; // 4th dimension
+      createPiece(white4DRookCoords, PIECE_TYPES.ROOK, PIECE_COLORS.WHITE);
+      
+      const white4DBishopCoords = Array(activeDimensions.length).fill(0);
+      white4DBishopCoords[0] = 2; // X position
+      white4DBishopCoords[1] = -3; // Z position (middle of board)
+      white4DBishopCoords[3] = position4D; // 4th dimension
+      createPiece(white4DBishopCoords, PIECE_TYPES.BISHOP, PIECE_COLORS.WHITE);
+      
+      const white4DKnightCoords = Array(activeDimensions.length).fill(0);
+      white4DKnightCoords[0] = 1; // X position
+      white4DKnightCoords[1] = -3; // Z position (middle of board)
+      white4DKnightCoords[3] = position4D; // 4th dimension
+      createPiece(white4DKnightCoords, PIECE_TYPES.KNIGHT, PIECE_COLORS.WHITE);
+      
+      // Black pieces
+      const black4DQueenCoords = Array(activeDimensions.length).fill(0);
+      black4DQueenCoords[0] = 4; // X position
+      black4DQueenCoords[1] = -4; // Z position (middle of board)
+      black4DQueenCoords[3] = position4D; // 4th dimension
+      createPiece(black4DQueenCoords, PIECE_TYPES.QUEEN, PIECE_COLORS.BLACK);
+      
+      const black4DRookCoords = Array(activeDimensions.length).fill(0);
+      black4DRookCoords[0] = 7; // X position
+      black4DRookCoords[1] = -4; // Z position (middle of board)
+      black4DRookCoords[3] = position4D; // 4th dimension
+      createPiece(black4DRookCoords, PIECE_TYPES.ROOK, PIECE_COLORS.BLACK);
+      
+      const black4DBishopCoords = Array(activeDimensions.length).fill(0);
+      black4DBishopCoords[0] = 5; // X position
+      black4DBishopCoords[1] = -4; // Z position (middle of board)
+      black4DBishopCoords[3] = position4D; // 4th dimension
+      createPiece(black4DBishopCoords, PIECE_TYPES.BISHOP, PIECE_COLORS.BLACK);
+      
+      const black4DKnightCoords = Array(activeDimensions.length).fill(0);
+      black4DKnightCoords[0] = 6; // X position
+      black4DKnightCoords[1] = -4; // Z position (middle of board)
+      black4DKnightCoords[3] = position4D; // 4th dimension
+      createPiece(black4DKnightCoords, PIECE_TYPES.KNIGHT, PIECE_COLORS.BLACK);
+    }
+    
+    // 5th dimension pieces (if available)
+    if (activeDimensions.length >= 5) {
+      const position5D = 1;
+      
+      // White 5D pieces
+      const white5DKingCoords = Array(activeDimensions.length).fill(0);
+      white5DKingCoords[0] = 4; // X position
+      white5DKingCoords[1] = -2; // Z position
+      white5DKingCoords[4] = position5D; // 5th dimension
+      createPiece(white5DKingCoords, PIECE_TYPES.KING, PIECE_COLORS.WHITE);
+      
+      // Pawns in 5D for white
+      for (let x = 0; x < 4; x++) {
+        const white5DPawnCoords = Array(activeDimensions.length).fill(0);
+        white5DPawnCoords[0] = x + 3; // X positions 3-6
+        white5DPawnCoords[1] = -3; // Z position
+        white5DPawnCoords[4] = position5D; // 5th dimension
+        createPiece(white5DPawnCoords, PIECE_TYPES.PAWN, PIECE_COLORS.WHITE);
+      }
+      
+      // Black 5D pieces
+      const black5DKingCoords = Array(activeDimensions.length).fill(0);
+      black5DKingCoords[0] = 3; // X position
+      black5DKingCoords[1] = -5; // Z position
+      black5DKingCoords[4] = position5D; // 5th dimension
+      createPiece(black5DKingCoords, PIECE_TYPES.KING, PIECE_COLORS.BLACK);
+      
+      // Pawns in 5D for black
+      for (let x = 0; x < 4; x++) {
+        const black5DPawnCoords = Array(activeDimensions.length).fill(0);
+        black5DPawnCoords[0] = x + 1; // X positions 1-4
+        black5DPawnCoords[1] = -4; // Z position
+        black5DPawnCoords[4] = position5D; // 5th dimension
+        createPiece(black5DPawnCoords, PIECE_TYPES.PAWN, PIECE_COLORS.BLACK);
+      }
+    }
+    
+    // 6th dimension pieces (if available)
+    if (activeDimensions.length >= 6) {
+      const position6D = 1;
+      
+      // Add powerful pieces in 6th dimension for both players
+      // White 6D pieces
+      const white6DQueenCoords = Array(activeDimensions.length).fill(0);
+      white6DQueenCoords[0] = 7; // X position (corner)
+      white6DQueenCoords[1] = -7; // Z position (corner)
+      white6DQueenCoords[5] = position6D; // 6th dimension
+      createPiece(white6DQueenCoords, PIECE_TYPES.QUEEN, PIECE_COLORS.WHITE);
+      
+      // Black 6D pieces
+      const black6DQueenCoords = Array(activeDimensions.length).fill(0);
+      black6DQueenCoords[0] = 0; // X position (opposite corner)
+      black6DQueenCoords[1] = 0; // Z position (opposite corner)
+      black6DQueenCoords[5] = position6D; // 6th dimension
+      createPiece(black6DQueenCoords, PIECE_TYPES.QUEEN, PIECE_COLORS.BLACK);
+    }
   }
 }
 
