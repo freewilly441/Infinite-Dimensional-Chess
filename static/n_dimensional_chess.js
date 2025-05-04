@@ -159,6 +159,26 @@ const PIECE_COLORS = {
   BLACK: 'black'
 };
 
+// Mathematical complexity constants
+const COMPLEXITY_WEIGHTS = {
+  DIMENSIONS: 5,    // Weight for number of dimensions used
+  DISTANCE: 0.5,    // Weight for move distance
+  PIECE_TYPE: {     // Base complexity values for different piece types
+    [PIECE_TYPES.PAWN]: 1,
+    [PIECE_TYPES.KNIGHT]: 3,
+    [PIECE_TYPES.BISHOP]: 3,
+    [PIECE_TYPES.ROOK]: 3,
+    [PIECE_TYPES.QUEEN]: 5,
+    [PIECE_TYPES.KING]: 2,
+    [PIECE_TYPES.HYPERROOK]: 7,
+    [PIECE_TYPES.HYPERBISHOP]: 8,
+    [PIECE_TYPES.HYPERKNIGHT]: 9
+  },
+  CAPTURE: 2,       // Additional complexity for captures
+  DIMENSIONAL_SHIFT: 10,  // Complexity bonus for moving through higher dimensions
+  RISK: 1.5         // Weight for moving into threatened positions
+};
+
 // Game state variables
 let scene, camera, renderer, controls, raycaster, mouse;
 let activeDimensions = [0, 1, 2]; // Default active dimensions (first three)
@@ -179,6 +199,8 @@ let moveHighlights = [];
 let visualizationControls = {
   sliceCoordinates: Array(MAX_DIMENSIONS).fill(0) // For visualizing specific slices
 };
+let totalComplexityScore = 0;
+let lastMoveComplexity = 0;
 
 // HTML element references
 let positionDisplay, gameStatusElement;
@@ -2140,6 +2162,12 @@ function movePiece(selectedPiece, newCoords) {
     isCapture
   );
   
+  // Calculate the complexity score for this move
+  const complexityScore = calculateMoveComplexity(coords, newCoords, piece, isCapture);
+  
+  // Update the complexity score display
+  updateComplexityScore(complexityScore);
+  
   // For hyperpiece movements through higher dimensions, provide mathematical explanations
   if (!isCapture && isHigherDimensionalMove) {
     // Determine which hyperpiece is moving
@@ -2593,6 +2621,106 @@ function updateCapturedPiecesDisplay() {
       pieceElement.textContent = getPieceSymbol(piece.type, piece.color);
       blackCapturedElement.appendChild(pieceElement);
     });
+  }
+}
+
+// Calculate mathematical complexity of a move
+function calculateMoveComplexity(fromCoords, toCoords, piece, isCapture) {
+  let complexity = 0;
+  
+  // Base complexity from piece type
+  complexity += COMPLEXITY_WEIGHTS.PIECE_TYPE[piece.type] || 1;
+  
+  // Add complexity for capture operations
+  if (isCapture) {
+    complexity += COMPLEXITY_WEIGHTS.CAPTURE;
+  }
+  
+  // Calculate Euclidean distance in all dimensions
+  const dimensionsUsed = [];
+  let distanceSquared = 0;
+  
+  for (let i = 0; i < fromCoords.length; i++) {
+    const delta = toCoords[i] - fromCoords[i];
+    distanceSquared += delta * delta;
+    
+    // Count which dimensions were used in this move
+    if (delta !== 0) {
+      dimensionsUsed.push(i);
+    }
+  }
+  
+  const distance = Math.sqrt(distanceSquared);
+  complexity += distance * COMPLEXITY_WEIGHTS.DISTANCE;
+  
+  // Extra complexity for using higher dimensions (beyond 3D)
+  const higherDimensionsUsed = dimensionsUsed.filter(d => d >= 3).length;
+  if (higherDimensionsUsed > 0) {
+    // Exponential scaling for higher dimension usage
+    complexity += COMPLEXITY_WEIGHTS.DIMENSIONAL_SHIFT * Math.pow(1.5, higherDimensionsUsed);
+  }
+  
+  // Factor in dimensional fatigue if enabled
+  if (dimensionalFatigue && higherDimensionsUsed > 1) {
+    // Complexity increases with more dimensions due to increased coordination difficulty
+    complexity *= 1 + (higherDimensionsUsed * 0.2);
+  }
+  
+  // Total dimensions used also increases complexity
+  complexity += dimensionsUsed.length * COMPLEXITY_WEIGHTS.DIMENSIONS;
+  
+  // Hyperpieces get additional complexity based on their special movement patterns
+  if (piece.type.startsWith('hyper')) {
+    // Calculate which dimensions were used together for the move
+    const uniqueDimensionPairs = Math.min(dimensionsUsed.length * (dimensionsUsed.length - 1) / 2, 10);
+    
+    // Add complexity for each unique pair of dimensions used together
+    complexity += uniqueDimensionPairs * 2;
+  }
+  
+  // Round to 1 decimal place
+  return Math.round(complexity * 10) / 10;
+}
+
+// Update the complexity score display
+function updateComplexityScore(newPoints) {
+  // Update the last move complexity
+  lastMoveComplexity = newPoints;
+  
+  // Update the total score
+  totalComplexityScore += newPoints;
+  
+  // Round to integer for display
+  const displayScore = Math.round(totalComplexityScore);
+  
+  // Update the display
+  const scoreElement = document.getElementById('complexity-score');
+  if (scoreElement) {
+    scoreElement.textContent = displayScore;
+    
+    // Color coding based on score ranges
+    if (lastMoveComplexity > 50) {
+      scoreElement.className = 'badge bg-danger';
+    } else if (lastMoveComplexity > 30) {
+      scoreElement.className = 'badge bg-warning text-dark';
+    } else if (lastMoveComplexity > 15) {
+      scoreElement.className = 'badge bg-success';
+    } else {
+      scoreElement.className = 'badge bg-info';
+    }
+    
+    // Show a notification about the move complexity
+    if (lastMoveComplexity > 15) {
+      const complexityTier = lastMoveComplexity > 50 ? "Cosmic" : 
+                             lastMoveComplexity > 30 ? "Transcendent" :
+                             "Advanced";
+                             
+      showMathNotification(
+        `${complexityTier} Move`,
+        `+${lastMoveComplexity} points`,
+        `Your move's mathematical complexity impacts ${lastMoveComplexity > 30 ? 'multiple dimensions' : 'spacetime'}.`
+      );
+    }
   }
 }
 
