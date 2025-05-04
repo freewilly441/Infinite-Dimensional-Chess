@@ -201,6 +201,24 @@
     <h2>Loading N-Dimensional Chess</h2>
     <div class="loading-spinner"></div>
     <p>Initializing multi-dimensional space...</p>
+    <div class="mt-4 text-warning" id="load-error" style="display: none;">
+      <p><strong>Having trouble loading?</strong></p>
+      <ul class="text-start">
+        <li>Make sure you're using a modern browser (Chrome, Firefox, Edge)</li>
+        <li>Enable JavaScript and WebGL in your browser settings</li>
+        <li>Try refreshing the page or clearing your browser cache</li>
+        <li>If errors persist, check the browser console for specific error messages</li>
+      </ul>
+    </div>
+    <script>
+      // Show error message if loading takes too long
+      setTimeout(() => {
+        const errorElement = document.getElementById('load-error');
+        if (document.getElementById('loading-overlay').style.display !== 'none') {
+          errorElement.style.display = 'block';
+        }
+      }, 10000);
+    </script>
   </div>
   
   <!-- UI Overlay -->
@@ -224,6 +242,11 @@
       <div class="mt-2">
         <span>Complexity Score: </span>
         <span id="complexity-score" class="badge bg-info">0</span>
+      </div>
+      <div class="mt-3">
+        <button id="help-btn" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#help-modal">
+          Help / Instructions
+        </button>
       </div>
     </div>
     
@@ -308,6 +331,60 @@
     }
   </script>
   
+  <!-- Help Modal -->
+  <div class="modal fade" id="help-modal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="helpModalLabel">N-Dimensional Chess: Quick Guide</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6>Controls</h6>
+          <ul>
+            <li><strong>Select Piece:</strong> Click on a chess piece</li>
+            <li><strong>Move:</strong> Click on a highlighted tile</li>
+            <li><strong>Rotate View:</strong> Click and drag with mouse</li>
+            <li><strong>Zoom:</strong> Scroll wheel</li>
+          </ul>
+          
+          <h6>Dimensions</h6>
+          <ul>
+            <li><strong>Toggle Dimensions:</strong> Use the colored dimension buttons (D1-D6)</li>
+            <li><strong>Change View:</strong> Select 2D, 3D, or Slice view from the dropdown</li>
+            <li><strong>Higher Dimensions:</strong> Dimensions beyond D3 allow for special movements</li>
+          </ul>
+          
+          <h6>Hyperpieces</h6>
+          <ul>
+            <li><strong>Hyperrook:</strong> Moves along any dimensional axis</li>
+            <li><strong>Hyperbishop:</strong> Moves along dimensional diagonals</li>
+            <li><strong>Hyperknight:</strong> Makes L-shaped jumps through higher dimensions</li>
+          </ul>
+          
+          <h6>Special Mechanics</h6>
+          <ul>
+            <li><strong>Dimensional Transport:</strong> Moving through higher dimensions</li>
+            <li><strong>Dimensional Fatigue:</strong> Movement range decreases when using multiple dimensions</li>
+            <li><strong>Complexity Score:</strong> Higher scores for mathematically complex moves</li>
+          </ul>
+          
+          <h6>Mathematical Elements</h6>
+          <ul>
+            <li><strong>Formulas:</strong> Each dimension has associated mathematical formulas</li>
+            <li><strong>Complexity Scoring:</strong> Moves are scored based on mathematical complexity</li>
+            <li><strong>Notifications:</strong> Special notifications appear for mathematically interesting moves</li>
+          </ul>
+          
+          <p class="small">For a full guide, see the README.md file.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Main application script -->
   <script type="module">
     import { init } from '/static/n_dimensional_chess.js';
