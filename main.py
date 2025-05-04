@@ -45,6 +45,10 @@ app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 def index():
     return render_template("index.html")
 
+@app.route("/n-dimensional-chess")
+def n_dimensional_chess():
+    return render_template("n_dimensional_chess.html")
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('index.html'), 404
