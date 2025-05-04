@@ -83,7 +83,7 @@ const PIECE_COLORS = {
 
 // Game state variables
 let scene, camera, renderer, controls, raycaster, mouse;
-let activeDimensions = DEFAULT_DIMENSIONS;
+let activeDimensions = [0, 1, 2]; // Default active dimensions (first three)
 let viewDimensions = [0, 1, 2]; // Which dimensions to visualize (X, Z, Y by default)
 let dimensionalFatigue = true; // Whether to apply dimensional fatigue mechanic
 let board = {}; // Dictionary to store board tiles keyed by coordinate tuples
@@ -338,6 +338,168 @@ function setupDimensionalControls() {
   });
   
   controlsDiv.appendChild(fatigueToggle);
+  
+  // Setup the enhanced dimension view controls
+  setupDimensionViewControls();
+}
+
+// Setup enhanced dimension view controls
+function setupDimensionViewControls() {
+  // Get DOM elements
+  const addDimensionBtn = document.getElementById('add-dimension-btn');
+  const resetDimensionsBtn = document.getElementById('reset-dimensions-btn');
+  const viewModeSelect = document.getElementById('view-mode-select');
+  const xDimensionSelect = document.getElementById('x-dimension-select');
+  const zDimensionSelect = document.getElementById('z-dimension-select');
+  const yDimensionSelect = document.getElementById('y-dimension-select');
+  
+  // Populate dimension selectors
+  function populateDimensionSelectors() {
+    // Clear existing options
+    xDimensionSelect.innerHTML = '';
+    zDimensionSelect.innerHTML = '';
+    yDimensionSelect.innerHTML = '';
+    
+    // Add options for each active dimension
+    activeDimensions.forEach(dim => {
+      const xOption = document.createElement('option');
+      xOption.value = dim;
+      xOption.textContent = `Dimension ${dim + 1}`;
+      if (viewDimensions[0] === dim) xOption.selected = true;
+      xDimensionSelect.appendChild(xOption);
+      
+      const zOption = document.createElement('option');
+      zOption.value = dim;
+      zOption.textContent = `Dimension ${dim + 1}`;
+      if (viewDimensions[1] === dim) zOption.selected = true;
+      zDimensionSelect.appendChild(zOption);
+      
+      const yOption = document.createElement('option');
+      yOption.value = dim;
+      yOption.textContent = `Dimension ${dim + 1}`;
+      if (viewDimensions.length > 2 && viewDimensions[2] === dim) yOption.selected = true;
+      yDimensionSelect.appendChild(yOption);
+    });
+  }
+  
+  // Initial population
+  populateDimensionSelectors();
+  
+  // Change view mode
+  viewModeSelect.addEventListener('change', () => {
+    const mode = viewModeSelect.value;
+    
+    if (mode === '2d') {
+      // 2D view - only use X and Z axes (first two dimensions)
+      viewDimensions = [activeDimensions[0], activeDimensions[1]];
+      yDimensionSelect.parentElement.style.display = 'none';
+    } else if (mode === '3d') {
+      // 3D view - use all three axes
+      viewDimensions = [activeDimensions[0], activeDimensions[1], activeDimensions[2]];
+      yDimensionSelect.parentElement.style.display = 'block';
+    } else if (mode === 'slice') {
+      // Slice view - show slices for dimensions > 3
+      viewDimensions = [activeDimensions[0], activeDimensions[1]];
+      yDimensionSelect.parentElement.style.display = 'none';
+      
+      // Show slice controls for all dimensions not being visualized
+      for (let d = 0; d < MAX_DIMENSIONS; d++) {
+        const sliceControl = document.querySelector(`.slice-control:nth-of-type(${d - 2})`);
+        if (sliceControl && !viewDimensions.includes(d) && activeDimensions.includes(d)) {
+          sliceControl.style.display = 'block';
+        }
+      }
+    }
+    
+    updateBoardVisualization();
+  });
+  
+  // Add dimension button
+  addDimensionBtn.addEventListener('click', () => {
+    if (activeDimensions.length >= MAX_DIMENSIONS) {
+      alert(`Maximum number of dimensions (${MAX_DIMENSIONS}) reached!`);
+      return;
+    }
+    
+    // Find the next available dimension
+    for (let d = 0; d < MAX_DIMENSIONS; d++) {
+      if (!activeDimensions.includes(d)) {
+        // Add this dimension
+        toggleDimension(d);
+        
+        // Update the UI
+        const dimButton = document.querySelector(`button[data-dimension="${d}"]`);
+        if (dimButton) dimButton.classList.add('active');
+        
+        // Refresh dimension selectors
+        populateDimensionSelectors();
+        break;
+      }
+    }
+  });
+  
+  // Reset dimensions button
+  resetDimensionsBtn.addEventListener('click', () => {
+    // Confirm reset
+    if (!confirm('Reset to default 3 dimensions?')) return;
+    
+    // Reset to default 3 dimensions
+    for (let d = 0; d < MAX_DIMENSIONS; d++) {
+      const isActive = activeDimensions.includes(d);
+      const shouldBeActive = d < DEFAULT_DIMENSIONS;
+      
+      if (isActive && !shouldBeActive) {
+        // Remove this dimension
+        toggleDimension(d);
+        
+        // Update the UI
+        const dimButton = document.querySelector(`button[data-dimension="${d}"]`);
+        if (dimButton) dimButton.classList.remove('active');
+      } else if (!isActive && shouldBeActive) {
+        // Add this dimension
+        toggleDimension(d);
+        
+        // Update the UI
+        const dimButton = document.querySelector(`button[data-dimension="${d}"]`);
+        if (dimButton) dimButton.classList.add('active');
+      }
+    }
+    
+    // Reset view dimensions
+    viewDimensions = [0, 1, 2];
+    
+    // Reset view mode
+    viewModeSelect.value = '3d';
+    
+    // Refresh dimension selectors
+    populateDimensionSelectors();
+    
+    // Update board visualization
+    updateBoardVisualization();
+  });
+  
+  // Dimension axis selectors
+  xDimensionSelect.addEventListener('change', () => {
+    const selectedDim = parseInt(xDimensionSelect.value);
+    viewDimensions[0] = selectedDim;
+    updateBoardVisualization();
+  });
+  
+  zDimensionSelect.addEventListener('change', () => {
+    const selectedDim = parseInt(zDimensionSelect.value);
+    viewDimensions[1] = selectedDim;
+    updateBoardVisualization();
+  });
+  
+  yDimensionSelect.addEventListener('change', () => {
+    const selectedDim = parseInt(yDimensionSelect.value);
+    if (viewDimensions.length > 2) {
+      viewDimensions[2] = selectedDim;
+    } else {
+      viewDimensions.push(selectedDim);
+    }
+    updateBoardVisualization();
+  });
 }
 
 // Toggle a dimension on/off
@@ -754,19 +916,69 @@ function createPiece(coords, type, color) {
   
   // For hyperpieces, add some emissive and transparent properties
   if (type.startsWith('hyper')) {
-    material.emissive = new THREE.Color(
-      color === PIECE_COLORS.WHITE ? 0x333300 : 0x000033
-    );
+    // Make hyperpieces glow in distinctive colors
+    const hyperColors = {
+      [PIECE_TYPES.HYPERROOK]: 0x00ffff,     // Cyan
+      [PIECE_TYPES.HYPERBISHOP]: 0xff00ff,   // Magenta
+      [PIECE_TYPES.HYPERKNIGHT]: 0xffff00    // Yellow
+    };
+    
+    const emissiveColor = hyperColors[type] || 0x00ffff;
+    
+    material.emissive = new THREE.Color(emissiveColor);
+    material.emissiveIntensity = 0.5;
     material.transparent = true;
     material.opacity = 0.9;
   }
   
   // Create mesh
-  const mesh = type.startsWith('hyper') && type !== PIECE_TYPES.HYPERROOK ? 
-    new THREE.Mesh(geometry, material) : 
-    type === PIECE_TYPES.HYPERROOK ? 
-      new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0xffff00 })) :
-      new THREE.Mesh(geometry, material);
+  let mesh;
+  
+  if (type === PIECE_TYPES.HYPERROOK) {
+    // Line segments for hyperrook
+    mesh = new THREE.LineSegments(
+      geometry, 
+      new THREE.LineBasicMaterial({ 
+        color: color === PIECE_COLORS.WHITE ? 0xffffff : 0x666666,
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.7,
+        linewidth: 2
+      })
+    );
+  } else if (type.startsWith('hyper')) {
+    // Create mesh with aura for hyperpieces
+    mesh = new THREE.Mesh(geometry, material);
+    
+    // Add glowing aura to hyperpieces
+    const auraGeometry = new THREE.SphereGeometry(0.35, 16, 16);
+    const auraMaterial = new THREE.MeshBasicMaterial({
+      color: material.emissive,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    
+    const aura = new THREE.Mesh(auraGeometry, auraMaterial);
+    mesh.add(aura);
+    
+    // Make the aura pulse
+    const pulseDuration = 2000 + Math.random() * 1000; // 2-3 seconds
+    const startTime = Date.now();
+    
+    // Store animation function for later reference
+    mesh.userData.animate = function() {
+      const elapsed = (Date.now() - startTime) % pulseDuration;
+      const progress = elapsed / pulseDuration;
+      
+      // Adjust aura scale and opacity
+      const scale = 1 + 0.2 * Math.sin(progress * Math.PI * 2);
+      aura.scale.set(scale, scale, scale);
+      auraMaterial.opacity = 0.2 + 0.1 * Math.sin(progress * Math.PI * 4);
+    };
+  } else {
+    // Regular pieces
+    mesh = new THREE.Mesh(geometry, material);
+  }
   
   // Position the piece based on the visualized dimensions
   const position = new THREE.Vector3();
@@ -1391,6 +1603,31 @@ function calculateHyperrookMoves(coords, color) {
   
   // Start the recursive generation with no dimensions used
   generateMultiDimMoves(0, 0, []);
+  
+  // Add dimensional transport capability - allows direct movement to higher dimensions
+  if (activeDimensions.length > 3) {
+    // Get higher dimensions (beyond the first three)
+    const higherDimensions = activeDimensions.filter((dim, index) => dim >= 3);
+    
+    // For each higher dimension, add transport moves
+    higherDimensions.forEach(dim => {
+      // Create transport move coordinates
+      for (let offset = -3; offset <= 3; offset++) {
+        if (offset === 0) continue; // Skip no movement
+        
+        const move = [...coords];
+        move[dim] += offset; // Move in the higher dimension
+        
+        // Check if the destination is valid
+        const piece = getPieceAt(move);
+        if (!piece) {
+          validMoves.push(move);
+        } else if (piece.color !== color) {
+          validMoves.push(move);
+        }
+      }
+    });
+  }
 }
 
 // Calculate hyperbishop moves - enhanced bishop that can move in multiple dimension-pairs simultaneously

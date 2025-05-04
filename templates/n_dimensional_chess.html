@@ -175,6 +175,35 @@
       <div id="dimension-controls">
         <!-- Dimension buttons will be generated here -->
       </div>
+      
+      <div class="mt-3">
+        <h5>Dimension View Controls</h5>
+        <div class="mb-2">
+          <button id="add-dimension-btn" class="btn btn-success btn-sm">Add Dimension</button>
+          <button id="reset-dimensions-btn" class="btn btn-warning btn-sm">Reset Dimensions</button>
+        </div>
+        <div class="mb-2">
+          <select id="view-mode-select" class="form-select form-select-sm">
+            <option value="3d">3D View</option>
+            <option value="2d">2D View</option>
+            <option value="slice">Dimensional Slice View</option>
+          </select>
+        </div>
+        <div id="dimension-view-controls">
+          <div class="mb-2">
+            <label for="x-dimension-select">X Axis:</label>
+            <select id="x-dimension-select" class="form-select form-select-sm"></select>
+          </div>
+          <div class="mb-2">
+            <label for="z-dimension-select">Z Axis:</label>
+            <select id="z-dimension-select" class="form-select form-select-sm"></select>
+          </div>
+          <div class="mb-2">
+            <label for="y-dimension-select">Y Axis:</label>
+            <select id="y-dimension-select" class="form-select form-select-sm"></select>
+          </div>
+        </div>
+      </div>
     </div>
     
     <!-- Dimension Labels -->
