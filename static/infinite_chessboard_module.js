@@ -21,9 +21,15 @@ const LOAD_THRESHOLD = 5; // Load new tiles when camera moves this many units
 const LIGHT_COLOR = 0xf0f0f0;
 const DARK_COLOR = 0x505050;
 const ORIGIN_COLOR = 0xff0000; // Red marker for origin
+const VALID_MOVE_COLOR = 0x00ff00; // Green highlight for valid moves
+const VALID_CAPTURE_COLOR = 0xff6600; // Orange highlight for valid captures
+const SELECTED_PIECE_COLOR = 0x00ffff; // Cyan highlight for selected piece
 const WHITE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
 const BLACK_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x505050 });
 const ORIGIN_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 });
+const VALID_MOVE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 });
+const VALID_CAPTURE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xff6600, transparent: true, opacity: 0.7 });
+const SELECTED_PIECE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7 });
 
 // Global variables
 let scene, camera, renderer, controls;
@@ -33,6 +39,17 @@ let pieceModels = {}; // Cache for loaded piece models
 let lastCameraPosition = { x: 0, z: 0 };
 let positionDisplay;
 let pieceLoadingComplete = false;
+
+// Game state variables
+let selectedPiece = null; // Currently selected piece
+let currentTurn = PIECE_COLORS.WHITE; // White moves first
+let validMoves = []; // Valid moves for selected piece
+let validMoveTiles = []; // References to highlighted valid move tiles
+let gameStatusElement;
+let capturedPieces = { 
+  [PIECE_COLORS.WHITE]: [], 
+  [PIECE_COLORS.BLACK]: [] 
+};
 
 // Define chess piece types and positions
 const PIECE_TYPES = {
@@ -116,6 +133,10 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   
+  // Raycaster for piece selection
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  
   // Controls setup
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -139,12 +160,15 @@ function init() {
   
   // Reference to HTML elements
   positionDisplay = document.getElementById('position-display');
+  gameStatusElement = document.getElementById('current-turn');
+  updateGameStatus();
   
   // Hide loading overlay
   document.getElementById('loading-overlay').style.display = 'none';
   
   // Event listeners
   window.addEventListener('resize', onWindowResize);
+  renderer.domElement.addEventListener('click', onMouseClick);
   
   // Start the render loop
   animate();
@@ -505,6 +529,488 @@ function animate() {
   
   // Render the scene
   renderer.render(scene, camera);
+}
+
+// Handle mouse click event
+function onMouseClick(event) {
+  // Prevent click from interfering with orbital controls
+  event.preventDefault();
+  
+  // Calculate mouse position in normalized device coordinates (-1 to +1)
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  // Update the picking ray with the camera and mouse position
+  raycaster.setFromCamera(mouse, camera);
+  
+  // Get objects intersected by the ray
+  const intersects = raycaster.intersectObjects(scene.children, false);
+  
+  if (intersects.length > 0) {
+    // Find which object was clicked (piece or tile)
+    for (let i = 0; i < intersects.length; i++) {
+      const object = intersects[i].object;
+      
+      // Check if a piece was clicked
+      if (isPieceClicked(object)) {
+        handlePieceClick(object);
+        return;
+      }
+      
+      // Check if a tile was clicked (and we have a selected piece)
+      if (isTileClicked(object) && selectedPiece) {
+        handleTileClick(object);
+        return;
+      }
+    }
+  }
+  
+  // If nothing relevant was clicked, deselect current piece
+  deselectCurrentPiece();
+}
+
+// Check if clicked object is a chess piece
+function isPieceClicked(object) {
+  for (const key in chessPieces) {
+    if (chessPieces[key].mesh === object) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if clicked object is a tile
+function isTileClicked(object) {
+  for (const key in chessboard) {
+    if (chessboard[key] === object) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Handle click on a chess piece
+function handlePieceClick(pieceObject) {
+  // Find the piece data
+  let pieceKey = null;
+  for (const key in chessPieces) {
+    if (chessPieces[key].mesh === pieceObject) {
+      pieceKey = key;
+      break;
+    }
+  }
+  
+  if (!pieceKey) return;
+  
+  const piece = chessPieces[pieceKey];
+  
+  // Check if it's this player's turn
+  if (piece.color !== currentTurn) {
+    console.log("Not your turn!");
+    return;
+  }
+  
+  // If we already had a piece selected, deselect it
+  if (selectedPiece) {
+    deselectCurrentPiece();
+  }
+  
+  // Select this piece
+  selectedPiece = {
+    key: pieceKey,
+    piece: piece,
+    position: {
+      x: parseInt(pieceKey.split(',')[0]),
+      z: parseInt(pieceKey.split(',')[1])
+    }
+  };
+  
+  // Calculate valid moves for this piece
+  calculateValidMoves();
+  
+  // Highlight the selected piece
+  highlightSelectedPiece();
+  
+  // Highlight valid moves
+  highlightValidMoves();
+}
+
+// Handle click on a tile
+function handleTileClick(tileObject) {
+  // Find the tile coordinates
+  let tileKey = null;
+  for (const key in chessboard) {
+    if (chessboard[key] === tileObject) {
+      tileKey = key;
+      break;
+    }
+  }
+  
+  if (!tileKey) return;
+  
+  const [x, z] = tileKey.split(',').map(Number);
+  const moveKey = `${x},${z}`;
+  
+  // Check if this is a valid move
+  const isValidMove = validMoves.some(move => `${move.x},${move.z}` === moveKey);
+  
+  if (isValidMove) {
+    // Execute the move
+    movePiece(selectedPiece, { x, z });
+    
+    // Deselect the piece and clean up highlights
+    deselectCurrentPiece();
+    
+    // Switch turns
+    switchTurn();
+  } else {
+    // Not a valid move, deselect
+    deselectCurrentPiece();
+  }
+}
+
+// Calculate valid moves for the selected piece
+function calculateValidMoves() {
+  validMoves = [];
+  
+  if (!selectedPiece) return;
+  
+  const { piece, position } = selectedPiece;
+  const { x, z } = position;
+  
+  switch (piece.type) {
+    case PIECE_TYPES.PAWN:
+      calculatePawnMoves(x, z, piece.color);
+      break;
+    case PIECE_TYPES.ROOK:
+      calculateRookMoves(x, z, piece.color);
+      break;
+    case PIECE_TYPES.KNIGHT:
+      calculateKnightMoves(x, z, piece.color);
+      break;
+    case PIECE_TYPES.BISHOP:
+      calculateBishopMoves(x, z, piece.color);
+      break;
+    case PIECE_TYPES.QUEEN:
+      calculateQueenMoves(x, z, piece.color);
+      break;
+    case PIECE_TYPES.KING:
+      calculateKingMoves(x, z, piece.color);
+      break;
+  }
+}
+
+// Calculate valid pawn moves
+function calculatePawnMoves(x, z, color) {
+  // Pawn direction depends on color
+  const direction = color === PIECE_COLORS.WHITE ? -1 : 1;
+  
+  // Forward move
+  const forward = { x, z: z + direction };
+  if (!getPieceAt(forward.x, forward.z)) {
+    validMoves.push(forward);
+    
+    // Double move from starting position
+    const startingRank = color === PIECE_COLORS.WHITE ? 0 : -6;
+    if (z === startingRank) {
+      const doubleForward = { x, z: z + 2 * direction };
+      if (!getPieceAt(doubleForward.x, doubleForward.z)) {
+        validMoves.push(doubleForward);
+      }
+    }
+  }
+  
+  // Capture moves (diagonally)
+  const captureLeft = { x: x - 1, z: z + direction };
+  const captureRight = { x: x + 1, z: z + direction };
+  
+  if (canCapture(captureLeft.x, captureLeft.z, color)) {
+    validMoves.push(captureLeft);
+  }
+  
+  if (canCapture(captureRight.x, captureRight.z, color)) {
+    validMoves.push(captureRight);
+  }
+}
+
+// Calculate valid rook moves
+function calculateRookMoves(x, z, color) {
+  // Check each direction (up, down, left, right)
+  const directions = [
+    { x: 0, z: 1 },  // up
+    { x: 0, z: -1 }, // down
+    { x: -1, z: 0 }, // left
+    { x: 1, z: 0 }   // right
+  ];
+  
+  // For each direction, keep going until we hit a piece or the edge
+  for (const dir of directions) {
+    for (let i = 1; i <= 7; i++) {
+      const newX = x + dir.x * i;
+      const newZ = z + dir.z * i;
+      
+      const piece = getPieceAt(newX, newZ);
+      
+      if (!piece) {
+        // Empty square, add to valid moves
+        validMoves.push({ x: newX, z: newZ });
+      } else if (piece.color !== color) {
+        // Enemy piece, add to valid moves and stop
+        validMoves.push({ x: newX, z: newZ });
+        break;
+      } else {
+        // Friendly piece, stop
+        break;
+      }
+    }
+  }
+}
+
+// Calculate valid knight moves
+function calculateKnightMoves(x, z, color) {
+  // Knight moves in L-shape: 2 in one direction, 1 in perpendicular direction
+  const moves = [
+    { x: x + 2, z: z + 1 },
+    { x: x + 2, z: z - 1 },
+    { x: x - 2, z: z + 1 },
+    { x: x - 2, z: z - 1 },
+    { x: x + 1, z: z + 2 },
+    { x: x - 1, z: z + 2 },
+    { x: x + 1, z: z - 2 },
+    { x: x - 1, z: z - 2 }
+  ];
+  
+  // Check each potential move
+  for (const move of moves) {
+    const piece = getPieceAt(move.x, move.z);
+    if (!piece || piece.color !== color) {
+      validMoves.push(move);
+    }
+  }
+}
+
+// Calculate valid bishop moves
+function calculateBishopMoves(x, z, color) {
+  // Check each diagonal direction
+  const directions = [
+    { x: 1, z: 1 },   // up-right
+    { x: 1, z: -1 },  // down-right
+    { x: -1, z: 1 },  // up-left
+    { x: -1, z: -1 }  // down-left
+  ];
+  
+  // For each direction, keep going until we hit a piece or the edge
+  for (const dir of directions) {
+    for (let i = 1; i <= 7; i++) {
+      const newX = x + dir.x * i;
+      const newZ = z + dir.z * i;
+      
+      const piece = getPieceAt(newX, newZ);
+      
+      if (!piece) {
+        // Empty square, add to valid moves
+        validMoves.push({ x: newX, z: newZ });
+      } else if (piece.color !== color) {
+        // Enemy piece, add to valid moves and stop
+        validMoves.push({ x: newX, z: newZ });
+        break;
+      } else {
+        // Friendly piece, stop
+        break;
+      }
+    }
+  }
+}
+
+// Calculate valid queen moves (combination of rook and bishop)
+function calculateQueenMoves(x, z, color) {
+  calculateRookMoves(x, z, color);
+  calculateBishopMoves(x, z, color);
+}
+
+// Calculate valid king moves
+function calculateKingMoves(x, z, color) {
+  // King moves one square in any direction
+  for (let dz = -1; dz <= 1; dz++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dz === 0) continue; // Skip the current position
+      
+      const newX = x + dx;
+      const newZ = z + dz;
+      
+      const piece = getPieceAt(newX, newZ);
+      
+      if (!piece || piece.color !== color) {
+        validMoves.push({ x: newX, z: newZ });
+      }
+    }
+  }
+}
+
+// Get piece at a specific position
+function getPieceAt(x, z) {
+  const key = `${x},${z}`;
+  return chessPieces[key];
+}
+
+// Check if a position can be captured by current color
+function canCapture(x, z, color) {
+  const piece = getPieceAt(x, z);
+  return piece && piece.color !== color;
+}
+
+// Highlight the selected piece
+function highlightSelectedPiece() {
+  if (selectedPiece) {
+    // Create a tile indicator below the selected piece
+    const { x, z } = selectedPiece.position;
+    const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.05, TILE_SIZE);
+    const material = SELECTED_PIECE_MATERIAL;
+    
+    const highlight = new THREE.Mesh(geometry, material);
+    highlight.position.set(x * TILE_SIZE, 0.15, z * TILE_SIZE);
+    scene.add(highlight);
+    
+    // Store the highlight for later removal
+    selectedPiece.highlight = highlight;
+  }
+}
+
+// Highlight valid moves
+function highlightValidMoves() {
+  // Remove any existing move indicators
+  clearValidMoveHighlights();
+  
+  // Create a new indicator for each valid move
+  for (const move of validMoves) {
+    // Determine if this is a capture move
+    const isCapture = !!getPieceAt(move.x, move.z);
+    
+    // Create a tile indicator
+    const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.05, TILE_SIZE);
+    const material = isCapture ? VALID_CAPTURE_MATERIAL : VALID_MOVE_MATERIAL;
+    
+    const highlight = new THREE.Mesh(geometry, material);
+    highlight.position.set(move.x * TILE_SIZE, 0.15, move.z * TILE_SIZE);
+    scene.add(highlight);
+    
+    // Store the highlight for later removal
+    validMoveTiles.push(highlight);
+  }
+}
+
+// Clear all valid move highlights
+function clearValidMoveHighlights() {
+  for (const highlight of validMoveTiles) {
+    scene.remove(highlight);
+  }
+  validMoveTiles = [];
+}
+
+// Deselect the current piece
+function deselectCurrentPiece() {
+  if (selectedPiece && selectedPiece.highlight) {
+    scene.remove(selectedPiece.highlight);
+  }
+  
+  clearValidMoveHighlights();
+  selectedPiece = null;
+  validMoves = [];
+}
+
+// Move a piece to a new position
+function movePiece(selectedPiece, newPosition) {
+  const { piece, position, key } = selectedPiece;
+  const { x: oldX, z: oldZ } = position;
+  const { x: newX, z: newZ } = newPosition;
+  
+  // Check if there's a piece to capture at the destination
+  const captureKey = `${newX},${newZ}`;
+  const capturedPiece = chessPieces[captureKey];
+  
+  if (capturedPiece) {
+    // Remove the captured piece from the scene
+    scene.remove(capturedPiece.mesh);
+    
+    // Store the captured piece in the captured list
+    capturedPieces[piece.color].push({
+      type: capturedPiece.type,
+      color: capturedPiece.color
+    });
+    
+    // Update the UI with captured piece
+    updateCapturedPiecesDisplay();
+    
+    // Remove from the chessPieces lookup
+    delete chessPieces[captureKey];
+  }
+  
+  // Calculate new position
+  const newXPos = newX * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
+  const newZPos = newZ * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
+  
+  // Move the piece mesh to the new position
+  piece.mesh.position.x = newXPos;
+  piece.mesh.position.z = newZPos;
+  
+  // Update the chessPieces lookup
+  delete chessPieces[key];
+  chessPieces[captureKey] = piece;
+}
+
+// Switch turns
+function switchTurn() {
+  currentTurn = currentTurn === PIECE_COLORS.WHITE ? PIECE_COLORS.BLACK : PIECE_COLORS.WHITE;
+  updateGameStatus();
+}
+
+// Update game status display
+function updateGameStatus() {
+  if (gameStatusElement) {
+    gameStatusElement.textContent = currentTurn === PIECE_COLORS.WHITE ? "White" : "Black";
+    gameStatusElement.className = currentTurn === PIECE_COLORS.WHITE ? "badge bg-light text-dark" : "badge bg-dark";
+  }
+}
+
+// Update captured pieces display
+function updateCapturedPiecesDisplay() {
+  const whiteCapturedElement = document.getElementById('white-captured');
+  const blackCapturedElement = document.getElementById('black-captured');
+  
+  if (whiteCapturedElement && blackCapturedElement) {
+    // Clear existing displays
+    whiteCapturedElement.innerHTML = '';
+    blackCapturedElement.innerHTML = '';
+    
+    // Helper function to get Unicode chess piece symbol
+    const getPieceSymbol = (type, color) => {
+      const symbols = {
+        [PIECE_TYPES.PAWN]: color === PIECE_COLORS.WHITE ? '♙' : '♟',
+        [PIECE_TYPES.ROOK]: color === PIECE_COLORS.WHITE ? '♖' : '♜',
+        [PIECE_TYPES.KNIGHT]: color === PIECE_COLORS.WHITE ? '♘' : '♞',
+        [PIECE_TYPES.BISHOP]: color === PIECE_COLORS.WHITE ? '♗' : '♝',
+        [PIECE_TYPES.QUEEN]: color === PIECE_COLORS.WHITE ? '♕' : '♛',
+        [PIECE_TYPES.KING]: color === PIECE_COLORS.WHITE ? '♔' : '♚',
+      };
+      return symbols[type];
+    };
+    
+    // Add white captured pieces
+    capturedPieces[PIECE_COLORS.WHITE].forEach(piece => {
+      const pieceElement = document.createElement('span');
+      pieceElement.className = 'captured-piece';
+      pieceElement.textContent = getPieceSymbol(piece.type, piece.color);
+      whiteCapturedElement.appendChild(pieceElement);
+    });
+    
+    // Add black captured pieces
+    capturedPieces[PIECE_COLORS.BLACK].forEach(piece => {
+      const pieceElement = document.createElement('span');
+      pieceElement.className = 'captured-piece';
+      pieceElement.textContent = getPieceSymbol(piece.type, piece.color);
+      blackCapturedElement.appendChild(pieceElement);
+    });
+  }
 }
 
 // Start the application
