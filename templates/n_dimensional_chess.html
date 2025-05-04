@@ -143,6 +143,56 @@
     .active {
       border: 2px solid white !important;
     }
+    
+    #math-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      color: white;
+      width: 300px;
+      pointer-events: auto;
+      border: 1px solid #00aaff;
+    }
+    
+    .math-formula {
+      background-color: rgba(0, 170, 255, 0.2);
+      border-radius: 5px;
+      padding: 8px;
+      margin: 10px 0;
+      font-family: 'Cambria Math', serif;
+      font-size: 18px;
+      text-align: center;
+    }
+    
+    .math-facts {
+      font-style: italic;
+      font-size: 0.9em;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    
+    .dimensional-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 2px solid #00aaff;
+      border-radius: 10px;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      max-width: 80%;
+    }
   </style>
 </head>
 <body>
@@ -155,6 +205,12 @@
   
   <!-- UI Overlay -->
   <div id="ui-overlay">
+    <!-- Dimensional Notification Popup -->
+    <div id="dimensional-notification" class="dimensional-notification">
+      <h3 id="notification-title">Dimensional Shift</h3>
+      <div id="notification-formula" class="math-formula">∞</div>
+      <p id="notification-text">Traveling through multidimensional space...</p>
+    </div>
     <!-- Information Panel -->
     <div id="info-panel">
       <h4>N-Dimensional Chess</h4>
@@ -220,6 +276,20 @@
       <div>
         <span>Black captures: </span>
         <div id="black-captured"></div>
+      </div>
+    </div>
+    
+    <!-- Mathematical Insights Panel -->
+    <div id="math-panel">
+      <h4>Mathematical Insights</h4>
+      <div id="math-formula" class="math-formula">
+        <span id="current-formula">ℝⁿ</span>
+      </div>
+      <p id="math-explanation" class="small">
+        N-dimensional chess operates in Euclidean space with n-tuples (x₁, x₂, ..., xₙ) as coordinates.
+      </p>
+      <div class="math-facts">
+        <p id="math-fact">Dimensional complexity grows exponentially with each added dimension.</p>
       </div>
     </div>
   </div>

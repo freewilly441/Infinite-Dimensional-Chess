@@ -17,6 +17,84 @@ const MAX_DIMENSIONS = 6; // Maximum number of dimensions supported
 const DEFAULT_DIMENSIONS = 3; // Default dimensions to start with
 const CHUNK_SIZE = 5; // Size of each chunk for generation
 
+// Mathematical concepts and formulas for the different dimensions
+const MATH_CONCEPTS = {
+  1: {
+    name: "Linear Space",
+    formula: "ℝ¹",
+    explanation: "One-dimensional space represented by a line, where points are defined by a single coordinate (x).",
+    fact: "The distance between points a and b is simply |b-a|."
+  },
+  2: {
+    name: "Plane",
+    formula: "ℝ²",
+    explanation: "Two-dimensional Euclidean space where points are represented by ordered pairs (x,y).",
+    fact: "The Pythagorean theorem allows us to calculate distances between points: √[(x₂-x₁)² + (y₂-y₁)²]."
+  },
+  3: {
+    name: "3D Space",
+    formula: "ℝ³",
+    explanation: "Three-dimensional space representing our physical reality with coordinates (x,y,z).",
+    fact: "3D space allows for 6 degrees of freedom: 3 translational and 3 rotational."
+  },
+  4: {
+    name: "Tesseract Space",
+    formula: "ℝ⁴",
+    explanation: "Four-dimensional space where points are represented by coordinates (x,y,z,w).",
+    fact: "A tesseract is the 4D analog of a cube, with 8 cubical cells, 24 faces, 32 edges, and 16 vertices."
+  },
+  5: {
+    name: "Penteract Space",
+    formula: "ℝ⁵",
+    explanation: "Five-dimensional space where movement occurs along 5 independent axes.",
+    fact: "A 5D hypercube has 32 cubical cells, 80 faces, 80 edges, and 32 vertices - demonstrating the complexity growth."
+  },
+  6: {
+    name: "Hexeract Space",
+    formula: "ℝ⁶",
+    explanation: "Six-dimensional space with coordinates (x₁,x₂,x₃,x₄,x₅,x₆).",
+    fact: "With each added dimension, the number of connections in a hypercube grows exponentially according to 2^(n-1)."
+  }
+};
+
+// Mathematical facts about hyperpiece movements
+const HYPERPIECE_MATH = {
+  hyperrook: {
+    formula: "Σ |xᵢ - yᵢ|",
+    explanation: "Hyperrooks move along n-dimensional Manhattan paths, defined by the L¹ norm (taxicab geometry).",
+    fact: "In n dimensions, a hyperrook can move in 2n different directions."
+  },
+  hyperbishop: {
+    formula: "√Σ(xᵢ - yᵢ)²",
+    explanation: "Hyperbishops move along n-dimensional diagonals, defined by the L² norm (Euclidean geometry).",
+    fact: "Hyperbishops can access only half of all cells in a hypercube, those with matching parity."
+  },
+  hyperknight: {
+    formula: "{(x,y) : d(x,y)² = 5}",
+    explanation: "Hyperknights perform dimensional leaps where the squared Euclidean distance equals 5.",
+    fact: "As dimensions increase, the number of potential knight moves grows according to the binomial coefficient (n choose 2)."
+  }
+};
+
+// Dimensional transport and fatigue mathematical explanations
+const DIMENSIONAL_MATH = {
+  transport: {
+    formula: "T: ℝⁿ → ℝⁿ",
+    explanation: "Dimensional transport applies a transformation that preserves most coordinates while shifting others.",
+    fact: "Moving through higher dimensions can be visualized as embedding a lower-dimensional space within a higher one."
+  },
+  fatigue: {
+    formula: "Range = ⌊R₀/2^(d-1)⌋",
+    explanation: "Dimensional fatigue reduces movement range exponentially with each additional dimension used.",
+    fact: "This models the increased energy required to navigate higher-dimensional spaces."
+  },
+  coordinates: {
+    formula: "(x₁, x₂, ..., xₙ)",
+    explanation: "Each point in n-dimensional space requires n coordinates to be uniquely specified.",
+    fact: "The hypervolume of an n-dimensional unit hypercube remains 1 regardless of the dimension."
+  }
+};
+
 // Materials
 const WHITE_MATERIAL = new THREE.MeshStandardMaterial({ 
   color: 0xeeeeee, 
@@ -164,12 +242,24 @@ function init() {
   gameStatusElement = document.getElementById('current-turn');
   updateGameStatus();
   
+  // Initialize mathematical insights panel
+  updateMathPanel(DEFAULT_DIMENSIONS);
+  
   // Hide loading overlay
   document.getElementById('loading-overlay').style.display = 'none';
   
   // Event listeners
   window.addEventListener('resize', onWindowResize);
   renderer.domElement.addEventListener('click', onMouseClick);
+  
+  // Show welcome mathematical notification
+  setTimeout(() => {
+    showMathNotification(
+      "N-Dimensional Chess",
+      `ℝ${DEFAULT_DIMENSIONS}`,
+      `Welcome to ${DEFAULT_DIMENSIONS}-dimensional space. Experience chess beyond traditional boundaries.`
+    );
+  }, 1000);
   
   // Start the render loop
   animate();
@@ -533,6 +623,16 @@ function toggleDimension(dimension) {
       }
     }
     
+    // Show mathematical notification about adding a dimension
+    showMathNotification(
+      "Dimension Added",
+      MATH_CONCEPTS[dimension + 1].formula,
+      `Entering ${MATH_CONCEPTS[dimension + 1].name}: ${MATH_CONCEPTS[dimension + 1].explanation}`
+    );
+    
+    // Update the math panel with info about this dimension
+    updateMathPanel(dimension + 1);
+    
   } else {
     // Can't have fewer than 3 dimensions
     if (activeDimensions.length <= 3) {
@@ -564,10 +664,78 @@ function toggleDimension(dimension) {
         sliceControl.style.display = 'none';
       }
     }
+    
+    // Show notification about removing a dimension
+    showMathNotification(
+      "Dimension Removed",
+      `ℝⁿ → ℝ${activeDimensions.length}`,
+      `Exiting ${MATH_CONCEPTS[dimension + 1].name}: Reducing dimensional complexity.`
+    );
+    
+    // Update the math panel with info about the highest remaining dimension
+    updateMathPanel(activeDimensions.length);
   }
   
   // Regenerate board
   updateBoardVisualization();
+}
+
+// Show a mathematical notification with dimensional information
+function showMathNotification(title, formula, text) {
+  const notification = document.getElementById('dimensional-notification');
+  const notificationTitle = document.getElementById('notification-title');
+  const notificationFormula = document.getElementById('notification-formula');
+  const notificationText = document.getElementById('notification-text');
+  
+  // Set content
+  notificationTitle.textContent = title;
+  notificationFormula.textContent = formula;
+  notificationText.textContent = text;
+  
+  // Show notification with fade-in
+  notification.style.opacity = '0';
+  notification.style.display = 'block';
+  
+  // Fade in
+  setTimeout(() => {
+    notification.style.opacity = '1';
+  }, 50);
+  
+  // Auto-hide after delay
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.style.display = 'none';
+    }, 500);
+  }, 4000);
+}
+
+// Update the mathematical insights panel with information based on the current dimensions
+function updateMathPanel(dimension = null) {
+  const formulaElement = document.getElementById('current-formula');
+  const explanationElement = document.getElementById('math-explanation');
+  const factElement = document.getElementById('math-fact');
+  
+  // If no specific dimension provided, use highest active dimension
+  if (dimension === null) {
+    dimension = activeDimensions.length;
+  }
+  
+  // Make sure dimension is within range
+  dimension = Math.min(dimension, MAX_DIMENSIONS);
+  dimension = Math.max(dimension, 1);
+  
+  // Update with mathematical information
+  if (MATH_CONCEPTS[dimension]) {
+    formulaElement.textContent = MATH_CONCEPTS[dimension].formula;
+    explanationElement.textContent = MATH_CONCEPTS[dimension].explanation;
+    factElement.textContent = MATH_CONCEPTS[dimension].fact;
+  } else {
+    // Fallback
+    formulaElement.textContent = `ℝ${dimension}`;
+    explanationElement.textContent = `${dimension}-dimensional space with ${dimension} independent coordinates.`;
+    factElement.textContent = `The complexity of calculations grows exponentially with dimension.`;
+  }
 }
 
 // Update slice visualization for higher dimensions
@@ -1867,6 +2035,14 @@ function movePiece(selectedPiece, newCoords) {
   const newKey = newCoords.join(',');
   const capturedPiece = pieces[newKey];
   
+  // Check if this is a special dimensional move (using higher dimensions)
+  const isHigherDimensionalMove = coords.some((coord, index) => {
+    if (index >= 3) {
+      return coord !== newCoords[index] && newCoords[index] !== 0;
+    }
+    return false;
+  });
+  
   let isCapture = false;
   
   if (capturedPiece) {
@@ -1889,6 +2065,15 @@ function movePiece(selectedPiece, newCoords) {
     
     // Remove from the pieces lookup
     delete pieces[newKey];
+    
+    // If this is a higher dimensional capture, show mathematical notification
+    if (isHigherDimensionalMove) {
+      showMathNotification(
+        "Dimensional Capture!",
+        DIMENSIONAL_MATH.transport.formula,
+        `${capturedPiece.type} captured through higher-dimensional space: ${DIMENSIONAL_MATH.transport.fact}`
+      );
+    }
   }
   
   // Calculate new position based on the visualized dimensions
@@ -1954,6 +2139,58 @@ function movePiece(selectedPiece, newCoords) {
     newCoords[viewDimensions[1]] * TILE_SIZE, 
     isCapture
   );
+  
+  // For hyperpiece movements through higher dimensions, provide mathematical explanations
+  if (!isCapture && isHigherDimensionalMove) {
+    // Determine which hyperpiece is moving
+    let mathInfo;
+    if (piece.type === PIECE_TYPES.HYPERROOK) {
+      mathInfo = HYPERPIECE_MATH.hyperrook;
+    } else if (piece.type === PIECE_TYPES.HYPERBISHOP) {
+      mathInfo = HYPERPIECE_MATH.hyperbishop;
+    } else if (piece.type === PIECE_TYPES.HYPERKNIGHT) {
+      mathInfo = HYPERPIECE_MATH.hyperknight;
+    } else {
+      mathInfo = DIMENSIONAL_MATH.transport;
+    }
+    
+    // Create movement description
+    const fromCoords = `(${coords.join(', ')})`;
+    const toCoords = `(${newCoords.join(', ')})`;
+    
+    showMathNotification(
+      `${piece.type.charAt(0).toUpperCase() + piece.type.slice(1)} Transport`,
+      mathInfo.formula,
+      `Moving from ${fromCoords} to ${toCoords} through dimensional space. ${mathInfo.fact}`
+    );
+    
+    // Update math panel with dimensional transport information
+    document.getElementById('current-formula').textContent = mathInfo.formula;
+    document.getElementById('math-explanation').textContent = mathInfo.explanation;
+    document.getElementById('math-fact').textContent = mathInfo.fact;
+  }
+  
+  // If move uses dimensional fatigue, display that information
+  if (dimensionalFatigue && isHigherDimensionalMove) {
+    // Calculate dimensions used
+    const dimsUsed = coords.reduce((count, coord, index) => {
+      if (index >= 3 && coord !== newCoords[index]) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+    
+    // If multiple dimensions used, show fatigue information
+    if (dimsUsed > 1) {
+      setTimeout(() => {
+        showMathNotification(
+          "Dimensional Fatigue",
+          DIMENSIONAL_MATH.fatigue.formula,
+          `Using ${dimsUsed} higher dimensions simultaneously reduces range by factor of ${Math.pow(2, dimsUsed-1)}.`
+        );
+      }, 2000); // Delay this notification to show after the movement one
+    }
+  }
 }
 
 // Animate piece movement
