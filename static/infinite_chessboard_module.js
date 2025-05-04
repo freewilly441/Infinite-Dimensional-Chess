@@ -6,6 +6,7 @@
 // Import Three.js and required components
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Check WebGL support
 if (!window.WebGLRenderingContext) {
@@ -27,8 +28,69 @@ const ORIGIN_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xff0000, emissi
 // Global variables
 let scene, camera, renderer, controls;
 let chessboard = {}; // Object to store generated tiles
+let chessPieces = {}; // Object to store chess pieces
+let pieceModels = {}; // Cache for loaded piece models
 let lastCameraPosition = { x: 0, z: 0 };
 let positionDisplay;
+let pieceLoadingComplete = false;
+
+// Define chess piece types and positions
+const PIECE_TYPES = {
+  PAWN: 'pawn',
+  ROOK: 'rook',
+  KNIGHT: 'knight',
+  BISHOP: 'bishop',
+  QUEEN: 'queen',
+  KING: 'king'
+};
+
+const PIECE_COLORS = {
+  WHITE: 'white',
+  BLACK: 'black'
+};
+
+// Standard chess starting position layout
+const STANDARD_CHESS_LAYOUT = [
+  // Black pieces (top row, z=-7)
+  { type: PIECE_TYPES.ROOK, color: PIECE_COLORS.BLACK, position: { x: 0, z: -7 } },
+  { type: PIECE_TYPES.KNIGHT, color: PIECE_COLORS.BLACK, position: { x: 1, z: -7 } },
+  { type: PIECE_TYPES.BISHOP, color: PIECE_COLORS.BLACK, position: { x: 2, z: -7 } },
+  { type: PIECE_TYPES.QUEEN, color: PIECE_COLORS.BLACK, position: { x: 3, z: -7 } },
+  { type: PIECE_TYPES.KING, color: PIECE_COLORS.BLACK, position: { x: 4, z: -7 } },
+  { type: PIECE_TYPES.BISHOP, color: PIECE_COLORS.BLACK, position: { x: 5, z: -7 } },
+  { type: PIECE_TYPES.KNIGHT, color: PIECE_COLORS.BLACK, position: { x: 6, z: -7 } },
+  { type: PIECE_TYPES.ROOK, color: PIECE_COLORS.BLACK, position: { x: 7, z: -7 } },
+  
+  // Black pawns (second row, z=-6)
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 0, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 1, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 2, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 3, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 4, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 5, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 6, z: -6 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.BLACK, position: { x: 7, z: -6 } },
+  
+  // White pawns (seventh row, z=-1)
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 0, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 1, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 2, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 3, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 4, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 5, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 6, z: -1 } },
+  { type: PIECE_TYPES.PAWN, color: PIECE_COLORS.WHITE, position: { x: 7, z: -1 } },
+  
+  // White pieces (bottom row, z=0)
+  { type: PIECE_TYPES.ROOK, color: PIECE_COLORS.WHITE, position: { x: 0, z: 0 } },
+  { type: PIECE_TYPES.KNIGHT, color: PIECE_COLORS.WHITE, position: { x: 1, z: 0 } },
+  { type: PIECE_TYPES.BISHOP, color: PIECE_COLORS.WHITE, position: { x: 2, z: 0 } },
+  { type: PIECE_TYPES.QUEEN, color: PIECE_COLORS.WHITE, position: { x: 3, z: 0 } },
+  { type: PIECE_TYPES.KING, color: PIECE_COLORS.WHITE, position: { x: 4, z: 0 } },
+  { type: PIECE_TYPES.BISHOP, color: PIECE_COLORS.WHITE, position: { x: 5, z: 0 } },
+  { type: PIECE_TYPES.KNIGHT, color: PIECE_COLORS.WHITE, position: { x: 6, z: 0 } },
+  { type: PIECE_TYPES.ROOK, color: PIECE_COLORS.WHITE, position: { x: 7, z: 0 } }
+];
 
 // Initialize the scene
 function init() {
@@ -71,6 +133,9 @@ function init() {
   
   // Add orientation axes
   addOrientationAxes();
+  
+  // Load chess pieces and place them on the board
+  loadChessPieces();
   
   // Reference to HTML elements
   positionDisplay = document.getElementById('position-display');
@@ -240,6 +305,178 @@ function addOrientationAxes() {
     0.2
   );
   scene.add(yAxis);
+}
+
+// Load and place chess pieces on the board
+function loadChessPieces() {
+  // Create basic piece geometries (temporary until models load)
+  createBasicPieces();
+  
+  // Load 3D chess piece models
+  loadChessPieceModels();
+}
+
+// Create simple geometric shapes for chess pieces (fallback/temporary)
+function createBasicPieces() {
+  // Define basic geometries and materials for each piece type
+  const pieceDefs = {
+    [PIECE_TYPES.PAWN]: {
+      geometry: new THREE.CylinderGeometry(0.15, 0.2, 0.5, 12),
+      height: 0.5
+    },
+    [PIECE_TYPES.ROOK]: {
+      geometry: new THREE.BoxGeometry(0.3, 0.7, 0.3),
+      height: 0.7
+    },
+    [PIECE_TYPES.KNIGHT]: {
+      geometry: new THREE.ConeGeometry(0.2, 0.7, 8, 1, false, Math.PI/4),
+      height: 0.7
+    },
+    [PIECE_TYPES.BISHOP]: {
+      geometry: new THREE.ConeGeometry(0.2, 0.8, 16),
+      height: 0.8
+    },
+    [PIECE_TYPES.QUEEN]: {
+      geometry: new THREE.SphereGeometry(0.25, 16, 16),
+      height: 0.9
+    },
+    [PIECE_TYPES.KING]: {
+      geometry: new THREE.CylinderGeometry(0.25, 0.25, 1, 16),
+      height: 1.0
+    }
+  };
+  
+  // Create material for each color
+  const whiteMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffcc, 
+    metalness: 0.7,
+    roughness: 0.2
+  });
+  
+  const blackMaterial = new THREE.MeshStandardMaterial({
+    color: 0x202020, 
+    metalness: 0.7,
+    roughness: 0.3
+  });
+  
+  // Place each piece according to the standard layout
+  STANDARD_CHESS_LAYOUT.forEach(piece => {
+    const pieceDef = pieceDefs[piece.type];
+    const material = piece.color === PIECE_COLORS.WHITE ? whiteMaterial : blackMaterial;
+    
+    // Create mesh
+    const mesh = new THREE.Mesh(pieceDef.geometry, material);
+    
+    // Position the piece
+    const x = piece.position.x * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
+    const z = piece.position.z * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
+    const y = pieceDef.height / 2 + 0.2; // Half height + board thickness
+    
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    
+    // Store a reference to this piece
+    const key = `${piece.position.x},${piece.position.z}`;
+    chessPieces[key] = {
+      mesh: mesh,
+      type: piece.type,
+      color: piece.color
+    };
+    
+    // Add to scene
+    scene.add(mesh);
+  });
+  
+  pieceLoadingComplete = true;
+}
+
+// Load 3D models for chess pieces
+function loadChessPieceModels() {
+  // This would load actual 3D models for chess pieces
+  // For now, we're using geometric primitives created in createBasicPieces
+  // This function can be expanded later to load actual GLTF/GLB models
+  
+  // Example of how this would work with real models:
+  /*
+  const loader = new GLTFLoader();
+  
+  // Load each piece type
+  const pieceTypes = [
+    PIECE_TYPES.PAWN,
+    PIECE_TYPES.ROOK,
+    PIECE_TYPES.KNIGHT,
+    PIECE_TYPES.BISHOP,
+    PIECE_TYPES.QUEEN,
+    PIECE_TYPES.KING
+  ];
+  
+  // For each type, load both colors
+  pieceTypes.forEach(type => {
+    // Load white pieces
+    loader.load(
+      `/static/models/${type}_white.glb`,
+      (gltf) => {
+        pieceModels[`${type}_${PIECE_COLORS.WHITE}`] = gltf.scene;
+        updatePiecesWithModels();
+      },
+      undefined,
+      (error) => {
+        console.error(`Error loading ${type} white:`, error);
+      }
+    );
+    
+    // Load black pieces
+    loader.load(
+      `/static/models/${type}_black.glb`,
+      (gltf) => {
+        pieceModels[`${type}_${PIECE_COLORS.BLACK}`] = gltf.scene;
+        updatePiecesWithModels();
+      },
+      undefined,
+      (error) => {
+        console.error(`Error loading ${type} black:`, error);
+      }
+    );
+  });
+  */
+}
+
+// Update already placed pieces with loaded 3D models
+function updatePiecesWithModels() {
+  // This would replace the simple geometric pieces with loaded 3D models
+  // For now, it's empty as we're using simple geometric pieces
+  /*
+  // Check if we have enough models loaded to update
+  const requiredModels = STANDARD_CHESS_LAYOUT.length;
+  const loadedModels = Object.keys(pieceModels).length;
+  
+  // Only proceed if all models are loaded
+  if (loadedModels < requiredModels) return;
+  
+  // Update each piece with its corresponding model
+  for (const key in chessPieces) {
+    const piece = chessPieces[key];
+    const modelKey = `${piece.type}_${piece.color}`;
+    
+    if (pieceModels[modelKey]) {
+      // Remove old geometric piece
+      scene.remove(piece.mesh);
+      
+      // Clone the model for this piece
+      const model = pieceModels[modelKey].clone();
+      
+      // Position it at the same place
+      model.position.copy(piece.mesh.position);
+      
+      // Add to scene
+      scene.add(model);
+      
+      // Update reference
+      piece.mesh = model;
+    }
+  }
+  */
 }
 
 // Update position display in the UI
