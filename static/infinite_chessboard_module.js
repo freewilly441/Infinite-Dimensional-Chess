@@ -1048,6 +1048,9 @@ function movePiece(selectedPiece, newPosition) {
     // Remove the captured piece from the scene with an animation
     animatePieceCapture(capturedPiece.mesh);
     
+    // Change the planar angle of the chessboard randomly
+    changeChessboardOrientation();
+    
     // Store the captured piece in the captured list
     capturedPieces[piece.color].push({
       type: capturedPiece.type,
@@ -1080,6 +1083,201 @@ function movePiece(selectedPiece, newPosition) {
   // Update the chessPieces lookup
   delete chessPieces[key];
   chessPieces[captureKey] = piece;
+}
+
+// Change the orientation of the chessboard randomly
+function changeChessboardOrientation() {
+  // Create a parent container for the board if it doesn't exist
+  if (!scene.getObjectByName('boardContainer')) {
+    // Create a container for the board
+    const boardContainer = new THREE.Group();
+    boardContainer.name = 'boardContainer';
+    
+    // Move all chess tiles and pieces to the container
+    const tilesToMove = [];
+    const piecesToMove = [];
+    
+    // Collect all tiles and pieces
+    scene.children.forEach(child => {
+      // Check if it's a chess tile
+      for (const key in chessboard) {
+        if (chessboard[key] === child) {
+          tilesToMove.push({ child, key });
+          return;
+        }
+      }
+      
+      // Check if it's a chess piece
+      for (const key in chessPieces) {
+        if (chessPieces[key].mesh === child) {
+          piecesToMove.push({ child, key });
+          return;
+        }
+      }
+    });
+    
+    // Move tiles to container
+    tilesToMove.forEach(({ child, key }) => {
+      const worldPos = child.position.clone();
+      scene.remove(child);
+      boardContainer.add(child);
+      // Save the original position for future reference
+      child.userData.originalPosition = worldPos.clone();
+    });
+    
+    // Move pieces to container
+    piecesToMove.forEach(({ child, key }) => {
+      const worldPos = child.position.clone();
+      scene.remove(child);
+      boardContainer.add(child);
+      // Save the original position for future reference
+      child.userData.originalPosition = worldPos.clone();
+    });
+    
+    // Add container to scene
+    scene.add(boardContainer);
+  }
+  
+  // Get the board container
+  const boardContainer = scene.getObjectByName('boardContainer');
+  
+  // Get random rotation angles
+  const possibleRotations = [
+    { x: Math.PI, y: 0, z: 0 },          // Upside down
+    { x: 0, y: Math.PI, z: 0 },          // 180 degrees around Y
+    { x: 0, y: 0, z: Math.PI },          // 180 degrees around Z
+    { x: Math.PI/2, y: 0, z: 0 },        // 90 degrees around X
+    { x: 0, y: Math.PI/2, z: 0 },        // 90 degrees around Y
+    { x: 0, y: 0, z: Math.PI/2 },        // 90 degrees around Z
+    { x: Math.PI/4, y: Math.PI/4, z: 0 }, // 45 degrees on two axes
+    { x: 0, y: 0, z: 0 }                  // Back to normal
+  ];
+  
+  // Select a random rotation
+  const newRotation = possibleRotations[Math.floor(Math.random() * possibleRotations.length)];
+  
+  // Animate the rotation
+  const duration = 2000; // 2 seconds
+  const startTime = Date.now();
+  const startRotation = {
+    x: boardContainer.rotation.x,
+    y: boardContainer.rotation.y,
+    z: boardContainer.rotation.z
+  };
+  
+  // Create dimensional rift effect during rotation
+  createDimensionalRift();
+  
+  function animateRotation() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1.0);
+    
+    // Ease in-out function for smooth movement
+    const easeProgress = progress < 0.5 ? 
+      4 * progress * progress * progress : 
+      1 - Math.pow(-2 * progress + 2, 3) / 2;
+    
+    // Interpolate rotation
+    boardContainer.rotation.x = startRotation.x + (newRotation.x - startRotation.x) * easeProgress;
+    boardContainer.rotation.y = startRotation.y + (newRotation.y - startRotation.y) * easeProgress;
+    boardContainer.rotation.z = startRotation.z + (newRotation.z - startRotation.z) * easeProgress;
+    
+    if (progress < 1.0) {
+      requestAnimationFrame(animateRotation);
+    }
+  }
+  
+  // Start animation
+  animateRotation();
+}
+
+// Create a dimensional rift effect during board rotation
+function createDimensionalRift() {
+  // Create a spherical effect at the center of the board
+  const riftGeometry = new THREE.SphereGeometry(5, 32, 32);
+  const riftMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    transparent: true,
+    opacity: 0.5,
+    side: THREE.DoubleSide,
+    wireframe: true
+  });
+  
+  const rift = new THREE.Mesh(riftGeometry, riftMaterial);
+  rift.position.set(0, 5, 0);
+  scene.add(rift);
+  
+  // Create lightning-like particle effects
+  const lightningCount = 20;
+  const lightnings = [];
+  
+  for (let i = 0; i < lightningCount; i++) {
+    const points = [];
+    const segmentCount = 10 + Math.floor(Math.random() * 10);
+    
+    // Create a lightning bolt (a series of connected points)
+    let x = 0, y = 5, z = 0;
+    const spread = 15;
+    
+    for (let j = 0; j < segmentCount; j++) {
+      points.push(new THREE.Vector3(x, y, z));
+      x += (Math.random() - 0.5) * spread / segmentCount;
+      y += (Math.random() - 0.5) * spread / segmentCount;
+      z += (Math.random() - 0.5) * spread / segmentCount;
+    }
+    
+    const lightningGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const lightningMaterial = new THREE.LineBasicMaterial({ 
+      color: 0x00ffff, 
+      linewidth: 2
+    });
+    
+    const lightning = new THREE.Line(lightningGeometry, lightningMaterial);
+    scene.add(lightning);
+    lightnings.push(lightning);
+  }
+  
+  // Animate the rift and lightning
+  const duration = 2000; // 2 seconds
+  const startTime = Date.now();
+  
+  function animateRift() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1.0);
+    
+    // Pulsate the rift
+    const scale = 1 + 0.5 * Math.sin(progress * Math.PI * 4);
+    rift.scale.set(scale, scale, scale);
+    
+    // Rotate the rift
+    rift.rotation.x += 0.03;
+    rift.rotation.y += 0.04;
+    
+    // Update lightning positions randomly
+    lightnings.forEach(lightning => {
+      lightning.rotation.x += (Math.random() - 0.5) * 0.2;
+      lightning.rotation.y += (Math.random() - 0.5) * 0.2;
+      lightning.rotation.z += (Math.random() - 0.5) * 0.2;
+    });
+    
+    // Update opacity
+    const fadeInOut = Math.sin(progress * Math.PI);
+    rift.material.opacity = 0.5 * fadeInOut;
+    lightnings.forEach(lightning => {
+      lightning.material.opacity = fadeInOut;
+    });
+    
+    if (progress < 1.0) {
+      requestAnimationFrame(animateRift);
+    } else {
+      // Remove elements when animation is done
+      scene.remove(rift);
+      lightnings.forEach(lightning => scene.remove(lightning));
+    }
+  }
+  
+  // Start animation
+  animateRift();
 }
 
 // Animate piece movement
