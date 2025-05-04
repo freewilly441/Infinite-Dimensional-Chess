@@ -90,6 +90,100 @@ Use the view controls to change how you visualize the n-dimensional space:
 
 You can also select which dimensions to map to the X, Y, and Z axes in the physical view.
 
+## Mathematical Foundations of N-Dimensional Chess
+
+### Euclidean Spaces and Coordinates
+
+The game is built on the concept of n-dimensional Euclidean spaces (ℝⁿ), where each point is represented by an n-tuple of coordinates:
+
+- In 1D: Points are represented as (x)
+- In 2D: Points are represented as (x, y)
+- In 3D: Points are represented as (x, y, z)
+- In 4D: Points are represented as (x, y, z, w)
+- And so on...
+
+The distance between two points in n-dimensional space is calculated using the Euclidean distance formula:
+
+```
+d = √((x₂-x₁)² + (y₂-y₁)² + (z₂-z₁)² + ... + (wₙ-w₁)²)
+```
+
+### Hypergeometry Concepts
+
+#### Tesseract (4D Hypercube)
+
+A tesseract is the 4-dimensional analog of a cube, much like a cube is the 3D analog of a square. It has:
+- 16 vertices
+- 32 edges
+- 24 squares
+- 8 cubic cells
+
+In the game, 4D movements can be visualized as "shortcuts" through this tesseract structure.
+
+#### Penteract and Hexeract (5D and 6D Hypercubes)
+
+As dimensions increase, the complexity grows exponentially:
+- A 5D hypercube (penteract) has 32 vertices, 80 edges, 80 squares, 40 cubes, and 10 tesseracts
+- A 6D hypercube (hexeract) has 64 vertices, 192 edges, 240 squares, 160 cubes, 60 tesseracts, and 12 penteracts
+
+### Movement Geometries
+
+#### Manhattan Distance (L¹ Norm)
+
+The hyperrook uses Manhattan distance (also called taxicab geometry), defined as:
+
+```
+d₁(p,q) = |p₁-q₁| + |p₂-q₂| + ... + |pₙ-qₙ|
+```
+
+This measures the total distance traveled along each axis separately.
+
+#### Euclidean Distance (L² Norm)
+
+The hyperbishop uses Euclidean distance, which measures the straight-line distance through n-dimensional space:
+
+```
+d₂(p,q) = √((p₁-q₁)² + (p₂-q₂)² + ... + (pₙ-qₙ)²)
+```
+
+#### Hyperknight Movement
+
+The hyperknight's movement pattern is defined by coordinates where:
+- Exactly two components differ from the starting position
+- One component differs by 1, another by 2
+- All other components remain unchanged
+
+This generalizes the knight's L-shape movement to higher dimensions.
+
+### Dimensional Fatigue Mathematics
+
+Dimensional fatigue in the game is based on the concept that coordinating movement through multiple dimensions simultaneously requires dividing attention. The formula:
+
+```
+Range = ⌊Base / 2^(d-1)⌋
+```
+
+Where:
+- Base = the piece's standard movement range
+- d = number of dimensions being utilized simultaneously
+
+This creates an exponential decrease in effectiveness as more dimensions are used, reflecting the increased complexity of coordination.
+
+### Complexity Scoring System
+
+The mathematical complexity score for each move is calculated as:
+
+```
+Complexity = (Piece_Weight + Capture_Bonus) + (Distance * Distance_Weight) +
+            (Dimensions_Used * Dimension_Weight) + Higher_Dimension_Bonus
+```
+
+For hyperpieces using multiple dimensions, additional complexity is added based on unique dimension pairs:
+
+```
+Hyperpiece_Bonus = UniqueDirectionPairs * 2
+```
+
 ## Mathematical Insights
 
 The mathematical insights panel provides formulas and explanations about:
@@ -98,6 +192,16 @@ The mathematical insights panel provides formulas and explanations about:
 - The mathematical concepts behind dimensional transport
 
 Pay attention to the mathematical notifications that appear during gameplay to learn more about the theory behind n-dimensional spaces.
+
+## Dimensional Transport Theory
+
+Dimensional transport can be thought of as a mathematical transformation T: ℝⁿ → ℝⁿ that preserves most coordinates while changing others. In simplified terms:
+
+1. **Embedding**: The lower dimensional space is embedded within a higher dimensional space
+2. **Path Shortening**: Moving through the higher dimension creates a "shortcut" that connects distant points
+3. **Projection**: When viewed in the original lower dimensional space, the movement appears discontinuous
+
+This is analogous to how a 2D being restricted to a paper surface could escape from a circle by moving through the 3rd dimension (up off the page and back down elsewhere).
 
 ## Tips for New Players
 
@@ -113,6 +217,17 @@ Pay attention to the mathematical notifications that appear during gameplay to l
 - Set up multi-dimensional forks where threats exist in different dimensional planes
 - Create fortress positions that are defended from multiple dimensions
 - Achieve higher complexity scores by making mathematically sophisticated moves
+- Use dimensional fatigue strategically by forcing opponents to divide attention across many dimensions
+
+## Real-World Mathematical Connections
+
+The concepts in this game connect to several advanced mathematical fields:
+
+- **Topology**: The study of properties preserved under continuous deformations
+- **Differential Geometry**: The study of curved spaces and manifolds
+- **Linear Algebra**: The mathematics of vector spaces and transformations
+- **Graph Theory**: Analyzing connectivity patterns relevant to chess piece movements
+- **Combinatorial Game Theory**: Mathematical analysis of games like chess
 
 Enjoy exploring the mathematical beauty of n-dimensional chess!
 
