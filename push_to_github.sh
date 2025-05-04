@@ -15,12 +15,20 @@ fi
 REPO_URL=$1
 COMMIT_MESSAGE=${2:-"Updated n-dimensional chess project"}
 
+# Extract username and repo from URL
+if [[ $REPO_URL =~ github\.com[:/]([^/]+)/([^/.]+)(.git)? ]]; then
+  USERNAME="${BASH_REMATCH[1]}"
+  REPO="${BASH_REMATCH[2]}"
+  AUTH_URL="https://${USERNAME}:${GITHUB_TOKEN}@github.com/${USERNAME}/${REPO}.git"
+else
+  echo "Error: Unable to parse GitHub repository URL"
+  exit 1
+fi
+
 # Configure Git
 echo "Configuring Git..."
-git config --global credential.helper store
-echo "https://oauth2:$GITHUB_TOKEN@github.com" > ~/.git-credentials
-git config --global user.name "GitHub Action"
-git config --global user.email "action@github.com"
+git config --global user.name "N-Dimensional Chess Bot"
+git config --global user.email "ndchess@example.com"
 
 # Check if this is already a git repo
 if [ ! -d .git ]; then
@@ -29,11 +37,11 @@ if [ ! -d .git ]; then
   git branch -M main
   
   echo "Adding remote repository..."
-  git remote add origin $REPO_URL
+  git remote add origin "$AUTH_URL"
 else
   echo "Git repository already initialized."
-  # Update remote URL if needed
-  git remote set-url origin $REPO_URL
+  # Update remote URL with authentication
+  git remote set-url origin "$AUTH_URL"
 fi
 
 # Add all changes
