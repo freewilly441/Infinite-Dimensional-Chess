@@ -31,8 +31,23 @@ const VALID_MOVE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x00ff00, tr
 const VALID_CAPTURE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xff6600, transparent: true, opacity: 0.7 });
 const SELECTED_PIECE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x00ffff, transparent: true, opacity: 0.7 });
 
+// Define chess piece types and positions
+const PIECE_TYPES = {
+  PAWN: 'pawn',
+  ROOK: 'rook',
+  KNIGHT: 'knight',
+  BISHOP: 'bishop',
+  QUEEN: 'queen',
+  KING: 'king'
+};
+
+const PIECE_COLORS = {
+  WHITE: 'white',
+  BLACK: 'black'
+};
+
 // Global variables
-let scene, camera, renderer, controls;
+let scene, camera, renderer, controls, raycaster, mouse;
 let chessboard = {}; // Object to store generated tiles
 let chessPieces = {}; // Object to store chess pieces
 let pieceModels = {}; // Cache for loaded piece models
@@ -51,20 +66,8 @@ let capturedPieces = {
   [PIECE_COLORS.BLACK]: [] 
 };
 
-// Define chess piece types and positions
-const PIECE_TYPES = {
-  PAWN: 'pawn',
-  ROOK: 'rook',
-  KNIGHT: 'knight',
-  BISHOP: 'bishop',
-  QUEEN: 'queen',
-  KING: 'king'
-};
-
-const PIECE_COLORS = {
-  WHITE: 'white',
-  BLACK: 'black'
-};
+// Audio variables
+let moveSound, captureSound;
 
 // Standard chess starting position layout
 const STANDARD_CHESS_LAYOUT = [
@@ -158,6 +161,12 @@ function init() {
   // Load chess pieces and place them on the board
   loadChessPieces();
   
+  // Load sound effects
+  loadSoundEffects();
+  
+  // Initialize multi-dimensional effects
+  initMultiDimensionalEffects();
+  
   // Reference to HTML elements
   positionDisplay = document.getElementById('position-display');
   gameStatusElement = document.getElementById('current-turn');
@@ -172,6 +181,66 @@ function init() {
   
   // Start the render loop
   animate();
+}
+
+// Load sound effects
+function loadSoundEffects() {
+  // Create audio elements
+  moveSound = new Audio('/static/sounds/move.mp3');
+  captureSound = new Audio('/static/sounds/capture.mp3');
+  
+  // Preload sounds
+  moveSound.load();
+  captureSound.load();
+}
+
+// Initialize multi-dimensional effects
+function initMultiDimensionalEffects() {
+  // Create a particle system for the multi-dimensional effect
+  const particleCount = 3000;
+  const particles = new THREE.BufferGeometry();
+  
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+  
+  const colorOptions = [
+    new THREE.Color(0x8844ff), // Purple
+    new THREE.Color(0x44aaff), // Blue
+    new THREE.Color(0x44ffaa)  // Teal
+  ];
+  
+  // Create particles in a large cube surrounding the board
+  for (let i = 0; i < particleCount; i++) {
+    // Positions
+    const x = (Math.random() - 0.5) * 100;
+    const y = (Math.random() - 0.5) * 100 + 25; // Bias toward above the board
+    const z = (Math.random() - 0.5) * 100;
+    
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+    
+    // Colors
+    const color = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+  
+  particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  
+  const particleMaterial = new THREE.PointsMaterial({
+    size: 0.5,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    sizeAttenuation: true
+  });
+  
+  const particleSystem = new THREE.Points(particles, particleMaterial);
+  particleSystem.name = 'dimensionalParticles';
+  scene.add(particleSystem);
 }
 
 // Set up scene lighting
@@ -527,8 +596,51 @@ function animate() {
   // Check if we need to generate new tiles
   checkGenerateTiles();
   
+  // Animate dimensional particles
+  animateDimensionalParticles();
+  
   // Render the scene
   renderer.render(scene, camera);
+}
+
+// Animate dimensional particles
+function animateDimensionalParticles() {
+  const particles = scene.getObjectByName('dimensionalParticles');
+  if (particles) {
+    // Rotate the entire particle system slowly for a cosmic effect
+    particles.rotation.y += 0.001;
+    
+    // Access the particle positions
+    const positions = particles.geometry.attributes.position.array;
+    
+    // Update each particle position slightly
+    for (let i = 0; i < positions.length; i += 3) {
+      // Apply sine wave motion to create a flowing effect
+      // Each axis moves at different frequencies
+      const time = Date.now() * 0.0005;
+      
+      // Add a small oscillation
+      positions[i] += Math.sin(time + i * 0.01) * 0.03;
+      positions[i + 1] += Math.cos(time + i * 0.02) * 0.02;
+      positions[i + 2] += Math.sin(time + i * 0.015) * 0.03;
+      
+      // Check if particles have drifted too far and wrap them back
+      const distanceSquared = 
+        positions[i] * positions[i] + 
+        positions[i + 1] * positions[i + 1] + 
+        positions[i + 2] * positions[i + 2];
+      
+      if (distanceSquared > 10000) {
+        // Reset to a random position closer to the center
+        positions[i] = (Math.random() - 0.5) * 100; 
+        positions[i + 1] = (Math.random() - 0.5) * 100 + 25;
+        positions[i + 2] = (Math.random() - 0.5) * 100;
+      }
+    }
+    
+    // Mark the attribute as needing an update
+    particles.geometry.attributes.position.needsUpdate = true;
+  }
 }
 
 // Handle mouse click event
@@ -928,9 +1040,13 @@ function movePiece(selectedPiece, newPosition) {
   const captureKey = `${newX},${newZ}`;
   const capturedPiece = chessPieces[captureKey];
   
+  let isCapture = false;
+  
   if (capturedPiece) {
-    // Remove the captured piece from the scene
-    scene.remove(capturedPiece.mesh);
+    isCapture = true;
+    
+    // Remove the captured piece from the scene with an animation
+    animatePieceCapture(capturedPiece.mesh);
     
     // Store the captured piece in the captured list
     capturedPieces[piece.color].push({
@@ -949,13 +1065,174 @@ function movePiece(selectedPiece, newPosition) {
   const newXPos = newX * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
   const newZPos = newZ * TILE_SIZE + TILE_SIZE/2 - TILE_SIZE/2;
   
-  // Move the piece mesh to the new position
-  piece.mesh.position.x = newXPos;
-  piece.mesh.position.z = newZPos;
+  // Animate the piece movement
+  animatePieceMovement(piece.mesh, newXPos, newZPos, isCapture);
+  
+  // Play appropriate sound
+  if (isCapture) {
+    captureSound.currentTime = 0;
+    captureSound.play().catch(e => console.log("Error playing capture sound:", e));
+  } else {
+    moveSound.currentTime = 0;
+    moveSound.play().catch(e => console.log("Error playing move sound:", e));
+  }
   
   // Update the chessPieces lookup
   delete chessPieces[key];
   chessPieces[captureKey] = piece;
+}
+
+// Animate piece movement
+function animatePieceMovement(pieceMesh, targetX, targetZ, isCapture) {
+  // Save original position
+  const startX = pieceMesh.position.x;
+  const startY = pieceMesh.position.y;
+  const startZ = pieceMesh.position.z;
+  
+  // Create a multi-dimensional movement animation
+  const duration = 500; // milliseconds
+  const startTime = Date.now();
+  
+  // Jump height depends on move distance and capture status
+  const moveDistance = Math.sqrt(
+    Math.pow(targetX - startX, 2) + 
+    Math.pow(targetZ - startZ, 2)
+  );
+  
+  // Higher jump for captures, scaled by distance
+  const jumpHeight = isCapture ? 
+    2.0 + moveDistance * 0.2 : 
+    1.0 + moveDistance * 0.1;
+  
+  // Create a multi-dimensional ripple effect
+  createDimensionalRipple(startX, startZ, targetX, targetZ, isCapture);
+  
+  function animateStep() {
+    const now = Date.now();
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1.0);
+    
+    // Ease in-out function for smooth movement
+    const easeProgress = progress < 0.5 ? 
+      2 * progress * progress : 
+      1 - Math.pow(-2 * progress + 2, 2) / 2;
+    
+    // Linear interpolation for x and z
+    const currentX = startX + (targetX - startX) * easeProgress;
+    const currentZ = startZ + (targetZ - startZ) * easeProgress;
+    
+    // Parabolic arc for y (height)
+    // sin curve gives a nice up-and-down movement (0→1→0)
+    const heightProgress = Math.sin(progress * Math.PI);
+    const currentY = startY + jumpHeight * heightProgress;
+    
+    // Apply new position
+    pieceMesh.position.set(currentX, currentY, currentZ);
+    
+    // Continue animation if not complete
+    if (progress < 1.0) {
+      requestAnimationFrame(animateStep);
+    } else {
+      // Ensure final position is exact
+      pieceMesh.position.set(targetX, startY, targetZ);
+    }
+  }
+  
+  // Start animation
+  animateStep();
+}
+
+// Animate piece capture
+function animatePieceCapture(pieceMesh) {
+  // Original scale and position
+  const originalScale = { x: pieceMesh.scale.x, y: pieceMesh.scale.y, z: pieceMesh.scale.z };
+  const originalPosition = { x: pieceMesh.position.x, y: pieceMesh.position.y, z: pieceMesh.position.z };
+  
+  // Animation duration in milliseconds
+  const duration = 400;
+  const startTime = Date.now();
+  
+  function animateStep() {
+    const now = Date.now();
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1.0);
+    
+    // Scale down and fade
+    const scale = 1 - progress;
+    pieceMesh.scale.set(scale, scale, scale);
+    
+    // Spin and rise
+    pieceMesh.rotation.y += 0.2;
+    pieceMesh.position.y = originalPosition.y + progress * 2;
+    
+    // Continue animation if not complete
+    if (progress < 1.0) {
+      requestAnimationFrame(animateStep);
+    } else {
+      // Remove the piece from scene when animation completes
+      scene.remove(pieceMesh);
+    }
+  }
+  
+  // Start animation
+  animateStep();
+}
+
+// Create a dimensional ripple effect when pieces move
+function createDimensionalRipple(startX, startZ, targetX, targetZ, isCapture) {
+  // Create a ring geometry
+  const geometry = new THREE.RingGeometry(0.4, 0.8, 32);
+  const material = new THREE.MeshBasicMaterial({ 
+    color: isCapture ? 0xff5500 : 0x00ffff,
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide
+  });
+  
+  // Create one ring at start position and one at target position
+  const startRing = new THREE.Mesh(geometry, material.clone());
+  const targetRing = new THREE.Mesh(geometry, material.clone());
+  
+  // Position rings
+  startRing.position.set(startX, 0.3, startZ);
+  startRing.rotation.x = Math.PI / 2; // Lay flat
+  
+  targetRing.position.set(targetX, 0.3, targetZ);
+  targetRing.rotation.x = Math.PI / 2; // Lay flat
+  
+  scene.add(startRing);
+  scene.add(targetRing);
+  
+  // Animation duration
+  const duration = 1000;
+  const startTime = Date.now();
+  
+  function animateRings() {
+    const now = Date.now();
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1.0);
+    
+    // Expand rings and fade out
+    const scale = 1 + progress * 3;
+    const opacity = 1 - progress;
+    
+    startRing.scale.set(scale, scale, scale);
+    targetRing.scale.set(scale, scale, scale);
+    
+    startRing.material.opacity = opacity;
+    targetRing.material.opacity = opacity;
+    
+    if (progress < 1.0) {
+      requestAnimationFrame(animateRings);
+    } else {
+      // Remove rings when animation completes
+      scene.remove(startRing);
+      scene.remove(targetRing);
+    }
+  }
+  
+  // Start animation
+  animateRings();
 }
 
 // Switch turns
