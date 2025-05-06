@@ -2,6 +2,13 @@
 
 Welcome to N-Dimensional Chess, an advanced chess simulation that extends the traditional game into higher dimensions! This guide will help you understand how to navigate and play this mathematically-enriched chess experience.
 
+## Authors
+This project was created as a collaborative effort by:
+
+Timothy Winans and Owen McMann
+
+We developed the concepts, mathematical framework, and the interactive game as part of the Univerity of Maryland Baltimore County HONR 300 – Mathematics of the Universe course in Spring 2025.
+
 ## Getting Started
 
 1. **Access the Game**: Open the application in your web browser by navigating to the URL or running the application locally.
