@@ -115,3 +115,22 @@ Pay attention to the mathematical notifications that appear during gameplay to l
 - Achieve higher complexity scores by making mathematically sophisticated moves
 
 Enjoy exploring the mathematical beauty of n-dimensional chess!
+
+Copyright (c) 2025 Timothy Winans and Owen McMann
+
+All rights reserved.
+
+Permission is hereby granted to use, share, and adapt this software and associated materials for **non-commercial**, **academic**, and **educational** purposes only, provided that proper attribution is given to the original authors.
+
+Commercial use, redistribution, or derivative works intended for profit are **strictly prohibited** without prior written consent from the authors.
+
+This includes, but is not limited to:
+- Paid software
+- Monetized educational content
+- Games distributed via online stores
+- Commercial presentations or exhibitions
+
+To inquire about commercial licensing, please contact:
+- Timothy Winans – timothyrwinans@gmail.com
+
+No warranty is provided. Use at your own risk.
