@@ -219,7 +219,8 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(15, 15, 15);
+  // Position camera to show pieces at start - looking at the board from white's perspective
+  camera.position.set(0, 10, 15);
   camera.lookAt(0, 0, 0);
   
   // Renderer setup

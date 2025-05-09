@@ -126,8 +126,9 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(15, 15, 15);
-  camera.lookAt(0, 0, 0);
+  // Position camera to start with a good view of the standard chess pieces
+  camera.position.set(3.5, 10, 7);
+  camera.lookAt(3.5, 0, -3.5);
   
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true });
