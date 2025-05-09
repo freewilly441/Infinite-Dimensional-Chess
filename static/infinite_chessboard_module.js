@@ -173,6 +173,9 @@ function init() {
   gameStatusElement = document.getElementById('current-turn');
   updateGameStatus();
   
+  // Initialize keyboard controller
+  initKeyboardController();
+  
   // Hide loading overlay
   document.getElementById('loading-overlay').style.display = 'none';
   
@@ -588,6 +591,24 @@ function onWindowResize() {
 }
 
 // Animation loop
+// Initialize keyboard controller
+let keyboardController;
+function initKeyboardController() {
+  keyboardController = new KeyboardController({
+    camera: camera,
+    controls: controls,
+    scene: scene,
+    raycaster: raycaster,
+    
+    // Game control functions
+    handlePieceSelection: (object) => handlePieceClick(object),
+    handleTileSelection: (object) => handleTileClick(object),
+    deselectPiece: () => deselectCurrentPiece(),
+    getSelectedPiece: () => selectedPiece,
+    getValidMoves: () => validMoves
+  });
+}
+
 function animate() {
   requestAnimationFrame(animate);
   
@@ -599,6 +620,11 @@ function animate() {
   
   // Animate dimensional particles
   animateDimensionalParticles();
+  
+  // Update keyboard controller
+  if (keyboardController) {
+    keyboardController.update(Date.now());
+  }
   
   // Render the scene
   renderer.render(scene, camera);

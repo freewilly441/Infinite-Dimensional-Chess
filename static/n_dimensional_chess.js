@@ -8,6 +8,7 @@
 // Import Three.js
 import * as THREE from 'three';
 import { OrbitControls } from 'OrbitControls';
+import { KeyboardController } from '/static/keyboard_controller.js';
 
 // Constants
 const TILE_SIZE = 1.0;
@@ -266,6 +267,9 @@ function init() {
   
   // Initialize mathematical insights panel
   updateMathPanel(DEFAULT_DIMENSIONS);
+  
+  // Initialize keyboard controller
+  initKeyboardController();
   
   // Hide loading overlay
   document.getElementById('loading-overlay').style.display = 'none';
@@ -2849,6 +2853,46 @@ function onWindowResize() {
 }
 
 // Animation loop
+// Initialize keyboard controller
+let keyboardController;
+function initKeyboardController() {
+  keyboardController = new KeyboardController({
+    camera: camera,
+    controls: controls,
+    scene: scene,
+    raycaster: raycaster,
+    
+    // Game control functions
+    handlePieceSelection: (object) => handlePieceClick(object),
+    handleTileSelection: (object) => handleTileClick(object),
+    deselectPiece: () => deselectCurrentPiece(),
+    getSelectedPiece: () => selectedPiece,
+    getValidMoves: () => validMoves,
+    
+    // Dimension control functions
+    toggleDimension: (dimension) => toggleDimension(dimension),
+    changeSlice: (dimension, direction) => {
+      // Only change slice if dimension exists and is active
+      if (dimension < MAX_DIMENSIONS && activeDimensions.includes(dimension)) {
+        // Get the slider for this dimension if it exists
+        const slider = document.getElementById(`slice-d${dimension}`);
+        if (slider) {
+          // Update the slider value
+          const newValue = parseInt(slider.value) + direction;
+          if (newValue >= parseInt(slider.min) && newValue <= parseInt(slider.max)) {
+            slider.value = newValue;
+            updateSliceVisualization(dimension, newValue);
+          }
+        } else {
+          // No slider, update directly
+          visualizationControls.sliceCoordinates[dimension] += direction;
+          updateBoardVisualization();
+        }
+      }
+    }
+  });
+}
+
 function animate() {
   requestAnimationFrame(animate);
   
@@ -2860,6 +2904,11 @@ function animate() {
   
   // Animate dimensional particles if they exist
   animateDimensionalParticles();
+  
+  // Update keyboard controller
+  if (keyboardController) {
+    keyboardController.update(Date.now());
+  }
   
   // Render the scene
   renderer.render(scene, camera);
