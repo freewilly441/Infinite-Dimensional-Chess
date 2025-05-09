@@ -514,6 +514,12 @@
           setTimeout(() => {
             const helpModal = new bootstrap.Modal(document.getElementById('help-modal'));
             helpModal.show();
+            
+            // When help modal is closed, position camera to show pieces
+            document.getElementById('help-modal').addEventListener('hidden.bs.modal', function () {
+              // Position camera to view the chess board from white's perspective
+              window.positionCameraForGameStart();
+            });
           }, 500);
         });
       }, 1500);
