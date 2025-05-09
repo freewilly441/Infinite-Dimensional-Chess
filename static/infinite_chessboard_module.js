@@ -185,8 +185,14 @@ function init() {
   
   // Center board button
   const centerBoardBtn = document.getElementById('center-board-btn');
+  console.log("Found center board button:", centerBoardBtn);
   if (centerBoardBtn) {
-    centerBoardBtn.addEventListener('click', centerOnActivePieces);
+    centerBoardBtn.addEventListener('click', function() {
+      console.log("Center board button clicked");
+      centerOnActivePieces();
+    });
+  } else {
+    console.error("Center board button not found!");
   }
   
   // Start the render loop
@@ -1523,8 +1529,11 @@ function updateCapturedPiecesDisplay() {
 
 // Center camera on pieces of the current player's turn
 function centerOnActivePieces() {
+  console.log("centerOnActivePieces called in Infinite Chessboard");
+  
   // Get the current turn color
   const currentColor = currentTurn;
+  console.log("Current turn color:", currentColor);
   
   // Find all pieces of the current color
   const activePieces = [];
@@ -1537,8 +1546,14 @@ function centerOnActivePieces() {
     }
   }
   
+  console.log("Found active pieces:", activePieces.length);
+  console.log("Pieces object:", chessPieces);
+  
   // If no pieces found, return
-  if (activePieces.length === 0) return;
+  if (activePieces.length === 0) {
+    console.log("No active pieces found, returning");
+    return;
+  }
   
   // Calculate the center position of all active pieces
   const centerPosition = { x: 0, y: 0, z: 0 };
@@ -1557,6 +1572,8 @@ function centerOnActivePieces() {
   centerPosition.y /= activePieces.length;
   centerPosition.z /= activePieces.length;
   
+  console.log("Calculated center position:", centerPosition);
+  
   // Adjust the y-coordinate to be slightly higher for a better view
   centerPosition.y += 5;
   
@@ -1572,6 +1589,9 @@ function centerOnActivePieces() {
     centerPosition.z -= 10;
     lookAtPosition.set(centerPosition.x, 0, centerPosition.z + 10);
   }
+  
+  console.log("Final camera position:", centerPosition);
+  console.log("Look at position:", lookAtPosition);
   
   // Animate the camera movement
   animateCameraMovement(centerPosition, lookAtPosition);
