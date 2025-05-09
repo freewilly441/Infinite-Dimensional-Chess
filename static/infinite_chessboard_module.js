@@ -973,13 +973,20 @@ function onMouseClick(event) {
   // Update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera);
   
+  // Objects to check for intersections
+  const objectsToCheck = [
+    ...Object.values(tileInstancedMeshes), // All instanced tile meshes
+    ...scene.children.filter(obj => obj.isMesh || obj.isInstancedMesh) // Other meshes
+  ];
+  
   // Get objects intersected by the ray
-  const intersects = raycaster.intersectObjects(scene.children, false);
+  const intersects = raycaster.intersectObjects(objectsToCheck, false);
   
   if (intersects.length > 0) {
     // Find which object was clicked (piece or tile)
     for (let i = 0; i < intersects.length; i++) {
-      const object = intersects[i].object;
+      const intersection = intersects[i];
+      const object = intersection.object;
       
       // Check if a piece was clicked
       if (isPieceClicked(object)) {
@@ -987,8 +994,10 @@ function onMouseClick(event) {
         return;
       }
       
-      // Check if a tile was clicked (and we have a selected piece)
-      if (isTileClicked(object) && selectedPiece) {
+      // Check if a tile was clicked (and we have a selected piece or it's a valid highlight)
+      if ((isTileClicked(object) && selectedPiece) || 
+          object === tileInstancedMeshes.validMove || 
+          object === tileInstancedMeshes.validCapture) {
         handleTileClick(object);
         return;
       }
@@ -1011,11 +1020,23 @@ function isPieceClicked(object) {
 
 // Check if clicked object is a tile
 function isTileClicked(object) {
+  // Check if the object is one of our instanced tile meshes
+  if (object === tileInstancedMeshes.white || 
+      object === tileInstancedMeshes.black || 
+      object === tileInstancedMeshes.origin) {
+    
+    // When using instanced meshes, raycasting gives us an instanceId property 
+    // in the intersection, which we use to identify the specific tile
+    return true;
+  }
+  
+  // For backwards compatibility with any individual tile meshes
   for (const key in chessboard) {
     if (chessboard[key] === object) {
       return true;
     }
   }
+  
   return false;
 }
 
@@ -1067,24 +1088,32 @@ function handlePieceClick(pieceObject) {
 
 // Handle click on a tile
 function handleTileClick(tileObject) {
-  // Find the tile coordinates
-  let tileKey = null;
-  for (const key in chessboard) {
-    if (chessboard[key] === tileObject) {
-      tileKey = key;
-      break;
-    }
+  // Get the ray intersection point with the tile
+  // This gives us the world position where the ray hit the object
+  const intersects = raycaster.intersectObject(tileObject);
+  if (intersects.length === 0) return;
+  
+  // Get the world position of the click
+  const worldPosition = intersects[0].point;
+  
+  // Convert world position to tile coordinates
+  const x = Math.floor(worldPosition.x / TILE_SIZE);
+  const z = Math.floor(worldPosition.z / TILE_SIZE);
+  const tileKey = `${x},${z}`;
+  
+  // Make sure this tile exists in our chessboard
+  if (!chessboard[tileKey]) {
+    console.log("Clicked on a tile that doesn't exist in chessboard:", tileKey);
+    return;
   }
   
-  if (!tileKey) return;
-  
-  const [x, z] = tileKey.split(',').map(Number);
-  const moveKey = `${x},${z}`;
-  
   // Check if this is a valid move
+  const moveKey = `${x},${z}`;
   const isValidMove = validMoves.some(move => `${move.x},${move.z}` === moveKey);
   
   if (isValidMove) {
+    console.log(`Moving piece to ${x},${z}`);
+    
     // Execute the move
     movePiece(selectedPiece, { x, z });
     
@@ -1094,6 +1123,7 @@ function handleTileClick(tileObject) {
     // Switch turns
     switchTurn();
   } else {
+    console.log(`Invalid move to ${x},${z}`);
     // Not a valid move, deselect
     deselectCurrentPiece();
   }
@@ -1292,12 +1322,17 @@ function canCapture(x, z, color) {
 // Highlight the selected piece
 function highlightSelectedPiece() {
   if (selectedPiece) {
-    // Create a tile indicator below the selected piece
+    // Use the selected piece indicator at position
     const { x, z } = selectedPiece.position;
-    const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.05, TILE_SIZE);
-    const material = SELECTED_PIECE_MATERIAL;
     
-    const highlight = new THREE.Mesh(geometry, material);
+    // Create matrix for the highlight position
+    const matrix = new THREE.Matrix4();
+    matrix.setPosition(x * TILE_SIZE, 0.15, z * TILE_SIZE);
+    
+    // Use a simple mesh for the selected piece highlight
+    // (Since we only highlight one piece at a time, there's less benefit from using instanced mesh)
+    const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.05, TILE_SIZE);
+    const highlight = new THREE.Mesh(geometry, SELECTED_PIECE_MATERIAL);
     highlight.position.set(x * TILE_SIZE, 0.15, z * TILE_SIZE);
     scene.add(highlight);
     
@@ -1311,30 +1346,58 @@ function highlightValidMoves() {
   // Remove any existing move indicators
   clearValidMoveHighlights();
   
+  // Counters for move and capture highlights
+  let moveCount = 0;
+  let captureCount = 0;
+  
+  // Setup the instanced meshes for highlighting
+  tileInstancedMeshes.validMove.count = 0;
+  tileInstancedMeshes.validCapture.count = 0;
+  tileInstancedMeshes.validMove.visible = true;
+  tileInstancedMeshes.validCapture.visible = true;
+  
   // Create a new indicator for each valid move
   for (const move of validMoves) {
     // Determine if this is a capture move
     const isCapture = !!getPieceAt(move.x, move.z);
     
-    // Create a tile indicator
-    const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.05, TILE_SIZE);
-    const material = isCapture ? VALID_CAPTURE_MATERIAL : VALID_MOVE_MATERIAL;
+    // Create matrix for the highlight position
+    const matrix = new THREE.Matrix4();
+    matrix.setPosition(move.x * TILE_SIZE, 0.15, move.z * TILE_SIZE);
     
-    const highlight = new THREE.Mesh(geometry, material);
-    highlight.position.set(move.x * TILE_SIZE, 0.15, move.z * TILE_SIZE);
-    scene.add(highlight);
-    
-    // Store the highlight for later removal
-    validMoveTiles.push(highlight);
+    if (isCapture) {
+      // Add to capture highlights
+      tileInstancedMeshes.validCapture.setMatrixAt(captureCount, matrix);
+      captureCount++;
+    } else {
+      // Add to move highlights
+      tileInstancedMeshes.validMove.setMatrixAt(moveCount, matrix);
+      moveCount++;
+    }
   }
+  
+  // Update instance counts
+  tileInstancedMeshes.validMove.count = moveCount;
+  tileInstancedMeshes.validCapture.count = captureCount;
+  
+  // Update matrices
+  tileInstancedMeshes.validMove.instanceMatrix.needsUpdate = true;
+  tileInstancedMeshes.validCapture.instanceMatrix.needsUpdate = true;
+  
+  console.log(`Highlighted ${moveCount} valid moves and ${captureCount} captures`);
 }
 
 // Clear all valid move highlights
 function clearValidMoveHighlights() {
-  for (const highlight of validMoveTiles) {
-    scene.remove(highlight);
-  }
-  validMoveTiles = [];
+  // Simply reset the count and hide the instanced meshes
+  tileInstancedMeshes.validMove.count = 0;
+  tileInstancedMeshes.validCapture.count = 0;
+  tileInstancedMeshes.validMove.visible = false;
+  tileInstancedMeshes.validCapture.visible = false;
+  
+  // Make sure the matrices are updated
+  tileInstancedMeshes.validMove.instanceMatrix.needsUpdate = true;
+  tileInstancedMeshes.validCapture.instanceMatrix.needsUpdate = true;
 }
 
 // Deselect the current piece
