@@ -183,6 +183,12 @@ function init() {
   window.addEventListener('resize', onWindowResize);
   renderer.domElement.addEventListener('click', onMouseClick);
   
+  // Center board button
+  const centerBoardBtn = document.getElementById('center-board-btn');
+  if (centerBoardBtn) {
+    centerBoardBtn.addEventListener('click', centerOnActivePieces);
+  }
+  
   // Start the render loop
   animate();
 }

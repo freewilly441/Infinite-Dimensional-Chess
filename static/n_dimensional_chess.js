@@ -2969,5 +2969,102 @@ function animateDimensionalParticles() {
   }
 }
 
+// Center camera on pieces of the current player's turn
+function centerOnActivePieces() {
+  // Get the current turn color
+  const currentColor = currentTurn;
+  
+  // Find all pieces of the current color
+  const activePieces = [];
+  
+  // Iterate through all board positions to find pieces of the current turn
+  for (const key in pieces) {
+    const piece = pieces[key];
+    if (piece && piece.color === currentColor) {
+      activePieces.push(piece);
+    }
+  }
+  
+  // If no pieces found, return
+  if (activePieces.length === 0) return;
+  
+  // Calculate the center position of all active pieces
+  const centerPosition = { x: 0, y: 0, z: 0 };
+  
+  activePieces.forEach(piece => {
+    const mesh = piece.mesh;
+    if (mesh) {
+      centerPosition.x += mesh.position.x;
+      centerPosition.y += mesh.position.y;
+      centerPosition.z += mesh.position.z;
+    }
+  });
+  
+  // Calculate the average position
+  centerPosition.x /= activePieces.length;
+  centerPosition.y /= activePieces.length;
+  centerPosition.z /= activePieces.length;
+  
+  // Adjust the y-coordinate to be slightly higher for a better view
+  centerPosition.y += 5;
+  
+  // Determine the direction based on the current turn (look at the board from the player's side)
+  const lookDirection = new THREE.Vector3(0, 0, 0);
+  if (currentColor === PIECE_COLORS.WHITE) {
+    // Look from the positive Z side for white
+    centerPosition.z += 15;
+    lookDirection.set(centerPosition.x, 0, centerPosition.z - 15);
+  } else {
+    // Look from the negative Z side for black
+    centerPosition.z -= 15;
+    lookDirection.set(centerPosition.x, 0, centerPosition.z + 15);
+  }
+  
+  // Animate the camera movement
+  animateCameraMovement(centerPosition, lookDirection);
+  
+  // Show notification
+  showMathNotification(
+    "Camera Centered",
+    `(${currentColor === PIECE_COLORS.WHITE ? "White" : "Black"})`,
+    `Camera centered on ${currentColor === PIECE_COLORS.WHITE ? "White" : "Black"}'s pieces.`
+  );
+}
+
+// Animate the camera movement to a new position
+function animateCameraMovement(targetPosition, lookAtPosition) {
+  const startPosition = camera.position.clone();
+  const startLookAt = controls.target.clone();
+  const duration = 1000; // milliseconds
+  const startTime = Date.now();
+  
+  function updateCameraPosition() {
+    const elapsedTime = Date.now() - startTime;
+    const progress = Math.min(elapsedTime / duration, 1);
+    
+    // Use cubic easing for smooth motion
+    const easedProgress = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+    
+    // Interpolate camera position
+    camera.position.lerpVectors(startPosition, targetPosition, easedProgress);
+    
+    // Interpolate look-at target
+    controls.target.lerpVectors(startLookAt, lookAtPosition, easedProgress);
+    
+    // Update camera and controls
+    controls.update();
+    
+    // Continue animation if not complete
+    if (progress < 1) {
+      requestAnimationFrame(updateCameraPosition);
+    }
+  }
+  
+  // Start the animation
+  updateCameraPosition();
+}
+
 // Export the init function to start the application
 export { init };
