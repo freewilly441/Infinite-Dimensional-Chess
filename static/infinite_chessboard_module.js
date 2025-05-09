@@ -19,12 +19,21 @@ if (!window.WebGLRenderingContext) {
 const TILE_SIZE = 1.0;
 const VISIBLE_RANGE = 30; // How many tiles to render in each direction
 const LOAD_THRESHOLD = 5; // Load new tiles when camera moves this many units
+const CLEANUP_BUFFER = 10; // Extra buffer for keeping tiles before cleanup
+const LOD_RANGES = [
+  { range: 10, detail: 1.0 },    // High detail for close tiles
+  { range: 20, detail: 0.8 },    // Medium detail
+  { range: VISIBLE_RANGE, detail: 0.6 }  // Lower detail for distant tiles
+];
+const BATCH_SIZE = 100; // Process this many tiles per frame when generating
 const LIGHT_COLOR = 0xf0f0f0;
 const DARK_COLOR = 0x505050;
 const ORIGIN_COLOR = 0xff0000; // Red marker for origin
 const VALID_MOVE_COLOR = 0x00ff00; // Green highlight for valid moves
 const VALID_CAPTURE_COLOR = 0xff6600; // Orange highlight for valid captures
 const SELECTED_PIECE_COLOR = 0x00ffff; // Cyan highlight for selected piece
+
+// Materials
 const WHITE_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
 const BLACK_MATERIAL = new THREE.MeshStandardMaterial({ color: 0x505050 });
 const ORIGIN_MATERIAL = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 });
@@ -55,6 +64,22 @@ let pieceModels = {}; // Cache for loaded piece models
 let lastCameraPosition = { x: 0, z: 0 };
 let positionDisplay;
 let pieceLoadingComplete = false;
+let lastFrameTime = Date.now(); // Timestamp for FPS calculation
+
+// Instance matrices for instanced rendering
+let tileInstancedMeshes = {
+  white: null,
+  black: null,
+  origin: null
+};
+let tileGeometry; // Shared geometry for all tiles
+let generationQueue = []; // Queue for progressive tile generation
+let isGeneratingTiles = false; // Flag to track generation in progress
+let performanceStats = {
+  fps: 0,
+  tileCount: 0,
+  lastUpdated: 0
+};
 
 // Game state variables
 let selectedPiece = null; // Currently selected piece
@@ -152,6 +177,9 @@ function init() {
   
   // Lighting setup
   setupLighting();
+  
+  // Initialize instanced rendering for tiles
+  initInstancedTiles();
   
   // Create initial chessboard tiles
   generateVisibleTiles();
@@ -288,6 +316,68 @@ function setupLighting() {
   scene.add(secondaryLight);
 }
 
+// Initialize instanced tile meshes for better performance
+function initInstancedTiles() {
+  // Create shared geometry for all tiles
+  tileGeometry = new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE);
+  
+  // Maximum number of instances we'll need (adjust based on expected visible range)
+  const maxInstances = (VISIBLE_RANGE * 2 + 1) * (VISIBLE_RANGE * 2 + 1);
+  
+  // Create instanced meshes for white, black, and origin tiles
+  tileInstancedMeshes.white = new THREE.InstancedMesh(
+    tileGeometry,
+    WHITE_MATERIAL,
+    maxInstances
+  );
+  tileInstancedMeshes.white.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  tileInstancedMeshes.white.receiveShadow = true;
+  tileInstancedMeshes.white.count = 0;
+  scene.add(tileInstancedMeshes.white);
+  
+  tileInstancedMeshes.black = new THREE.InstancedMesh(
+    tileGeometry,
+    BLACK_MATERIAL,
+    maxInstances
+  );
+  tileInstancedMeshes.black.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  tileInstancedMeshes.black.receiveShadow = true;
+  tileInstancedMeshes.black.count = 0;
+  scene.add(tileInstancedMeshes.black);
+  
+  tileInstancedMeshes.origin = new THREE.InstancedMesh(
+    tileGeometry,
+    ORIGIN_MATERIAL,
+    1 // Only need one for the origin tile
+  );
+  tileInstancedMeshes.origin.receiveShadow = true;
+  tileInstancedMeshes.origin.count = 0;
+  scene.add(tileInstancedMeshes.origin);
+  
+  // Create highlight instanced meshes for valid moves
+  tileInstancedMeshes.validMove = new THREE.InstancedMesh(
+    tileGeometry,
+    VALID_MOVE_MATERIAL,
+    64 // Maximum number of valid moves a piece could have
+  );
+  tileInstancedMeshes.validMove.receiveShadow = true;
+  tileInstancedMeshes.validMove.count = 0;
+  tileInstancedMeshes.validMove.visible = false;
+  scene.add(tileInstancedMeshes.validMove);
+  
+  tileInstancedMeshes.validCapture = new THREE.InstancedMesh(
+    tileGeometry,
+    VALID_CAPTURE_MATERIAL,
+    32 // Maximum number of capture moves
+  );
+  tileInstancedMeshes.validCapture.receiveShadow = true;
+  tileInstancedMeshes.validCapture.count = 0;
+  tileInstancedMeshes.validCapture.visible = false;
+  scene.add(tileInstancedMeshes.validCapture);
+  
+  console.log("Initialized instanced tile rendering system");
+}
+
 // Create a single chess tile
 function createTile(x, z) {
   const key = `${x},${z}`;
@@ -295,30 +385,65 @@ function createTile(x, z) {
   // Skip if tile already exists
   if (chessboard[key]) return;
   
-  // Create tile geometry
-  const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE);
+  // Create the position/transformation matrix
+  const matrix = new THREE.Matrix4();
+  matrix.setPosition(x * TILE_SIZE, 0, z * TILE_SIZE);
   
-  // Determine tile color (checkered pattern)
-  let material;
-  if ((x + z) % 2 === 0) {
-    material = WHITE_MATERIAL;
-  } else {
-    material = BLACK_MATERIAL;
-  }
+  // Determine tile type based on position
+  let tileType;
   
-  // Special case for origin (0,0)
   if (x === 0 && z === 0) {
-    material = ORIGIN_MATERIAL;
+    // Origin tile (0,0)
+    tileType = 'origin';
+    tileInstancedMeshes.origin.setMatrixAt(0, matrix);
+    tileInstancedMeshes.origin.count = 1;
+    tileInstancedMeshes.origin.instanceMatrix.needsUpdate = true;
+  } else {
+    // Regular checkered pattern
+    tileType = (x + z) % 2 === 0 ? 'white' : 'black';
+    const instancedMesh = tileInstancedMeshes[tileType];
+    const instanceIndex = instancedMesh.count;
+    
+    instancedMesh.setMatrixAt(instanceIndex, matrix);
+    instancedMesh.count++;
+    instancedMesh.instanceMatrix.needsUpdate = true;
   }
   
-  // Create tile mesh
-  const tile = new THREE.Mesh(geometry, material);
-  tile.position.set(x * TILE_SIZE, 0, z * TILE_SIZE);
-  tile.receiveShadow = true;
-  scene.add(tile);
+  // Store the tile reference info (type and instance index)
+  chessboard[key] = {
+    type: tileType,
+    position: { x, z }
+  };
   
-  // Store the tile reference
-  chessboard[key] = tile;
+  // Update performance stats
+  performanceStats.tileCount++;
+}
+
+// Process a batch of tiles from the generation queue
+function processTileGenerationBatch() {
+  // If there's nothing in the queue or generation is complete, return
+  if (generationQueue.length === 0) {
+    isGeneratingTiles = false;
+    return;
+  }
+  
+  // Process a batch of tiles
+  const batchEnd = Math.min(BATCH_SIZE, generationQueue.length);
+  for (let i = 0; i < batchEnd; i++) {
+    const { x, z } = generationQueue.shift();
+    createTile(x, z);
+  }
+  
+  // Update instance matrices
+  tileInstancedMeshes.white.instanceMatrix.needsUpdate = true;
+  tileInstancedMeshes.black.instanceMatrix.needsUpdate = true;
+  
+  // If there are still tiles to process, continue in the next frame
+  if (generationQueue.length > 0) {
+    requestAnimationFrame(processTileGenerationBatch);
+  } else {
+    isGeneratingTiles = false;
+  }
 }
 
 // Generate tiles within visible range of the camera
@@ -329,15 +454,72 @@ function generateVisibleTiles() {
   // Store current camera tile position
   lastCameraPosition = { x: cameraX, z: cameraZ };
   
-  // Generate tiles in a square around the camera position
-  for (let x = cameraX - VISIBLE_RANGE; x <= cameraX + VISIBLE_RANGE; x++) {
-    for (let z = cameraZ - VISIBLE_RANGE; z <= cameraZ + VISIBLE_RANGE; z++) {
-      createTile(x, z);
+  // Reset the instanced meshes before regenerating tiles
+  if (Object.keys(chessboard).length > 5000) {
+    // If we have too many tiles, reset everything for fresh generation
+    console.log("Resetting tile system due to high tile count:", Object.keys(chessboard).length);
+    resetTileSystem();
+  }
+  
+  // Clear the generation queue
+  generationQueue = [];
+  
+  // Generate tiles with level of detail based on distance
+  for (const lodLevel of LOD_RANGES) {
+    const range = lodLevel.range;
+    
+    // Calculate tile density based on detail level
+    // For lowest detail, we generate fewer tiles (creating gaps)
+    const tileStep = lodLevel.detail >= 1.0 ? 1 : Math.floor(1 / lodLevel.detail);
+    
+    for (let xOffset = -range; xOffset <= range; xOffset += tileStep) {
+      for (let zOffset = -range; zOffset <= range; zOffset += tileStep) {
+        const x = cameraX + xOffset;
+        const z = cameraZ + zOffset;
+        const key = `${x},${z}`;
+        
+        // If this tile doesn't exist, queue it for creation
+        if (!chessboard[key]) {
+          // Prioritize tiles closer to the camera
+          const distSq = xOffset * xOffset + zOffset * zOffset;
+          
+          // Add to generation queue
+          generationQueue.push({ x, z, priority: distSq });
+        }
+      }
     }
+  }
+  
+  // Sort generation queue by priority (distance from camera)
+  generationQueue.sort((a, b) => a.priority - b.priority);
+  
+  // Start tile generation if not already in progress
+  if (!isGeneratingTiles && generationQueue.length > 0) {
+    isGeneratingTiles = true;
+    processTileGenerationBatch();
   }
   
   // Update position display
   updatePositionDisplay(cameraX, cameraZ);
+}
+
+// Reset the entire tile system (for efficiency at high tile counts)
+function resetTileSystem() {
+  // Reset the instanced mesh counts
+  tileInstancedMeshes.white.count = 0;
+  tileInstancedMeshes.black.count = 0;
+  tileInstancedMeshes.origin.count = 0;
+  
+  // Clear the chessboard object
+  chessboard = {};
+  
+  // Reset performance stats
+  performanceStats.tileCount = 0;
+  
+  // Force a full recreation of the origin tile (0,0)
+  createTile(0, 0);
+  
+  console.log("Tile system reset completed");
 }
 
 // Check if new tiles need to be generated based on camera movement
@@ -351,33 +533,125 @@ function checkGenerateTiles() {
   
   // If camera has moved enough, generate new tiles
   if (distanceX > LOAD_THRESHOLD || distanceZ > LOAD_THRESHOLD) {
+    // Generate new tiles
     generateVisibleTiles();
-    cleanupDistantTiles();
+    
+    // Clean up distant tiles (asynchronously to improve performance)
+    setTimeout(() => {
+      cleanupDistantTiles();
+    }, 100);
   }
   
   // Update position display on each frame
   updatePositionDisplay(cameraX, cameraZ);
+  
+  // Update performance stats every second
+  const now = Date.now();
+  if (now - performanceStats.lastUpdated > 1000) {
+    // Get current FPS
+    performanceStats.fps = Math.round(1000 / (now - lastFrameTime));
+    performanceStats.lastUpdated = now;
+    
+    // Log performance stats occasionally
+    if (Math.random() < 0.05) { // 5% chance to log on any given frame
+      console.log(
+        `Performance: ${performanceStats.fps} FPS, ` +
+        `${performanceStats.tileCount} tiles, ` +
+        `Camera at (${cameraX}, ${cameraZ})`
+      );
+    }
+  }
 }
 
 // Remove tiles that are too far from the camera
 function cleanupDistantTiles() {
   const cameraX = Math.floor(camera.position.x / TILE_SIZE);
   const cameraZ = Math.floor(camera.position.z / TILE_SIZE);
-  const cleanupRange = VISIBLE_RANGE + 10; // Keep a buffer of tiles
+  const cleanupRange = VISIBLE_RANGE + CLEANUP_BUFFER;
+  
+  // Collect keys to remove
+  const keysToRemove = [];
   
   for (const key in chessboard) {
     const [x, z] = key.split(',').map(Number);
     
-    // Calculate distance from camera
+    // Calculate squared distance from camera (more efficient than sqrt)
     const distanceX = Math.abs(x - cameraX);
     const distanceZ = Math.abs(z - cameraZ);
     
-    // If tile is too far, remove it
+    // If tile is too far, mark for removal
     if (distanceX > cleanupRange || distanceZ > cleanupRange) {
-      scene.remove(chessboard[key]);
-      delete chessboard[key];
+      keysToRemove.push(key);
     }
   }
+  
+  // If too many tiles are being removed, do a full reset instead
+  if (keysToRemove.length > 1000) {
+    resetTileSystem();
+    return;
+  }
+  
+  // Remove the marked tiles
+  keysToRemove.forEach(key => {
+    delete chessboard[key];
+    performanceStats.tileCount--;
+  });
+  
+  // Rebuild instanced meshes if needed
+  if (keysToRemove.length > 0) {
+    rebuildInstancedMeshes();
+  }
+}
+
+// Rebuild instanced meshes after cleanup or changes
+function rebuildInstancedMeshes() {
+  // Reset instanced mesh counts
+  tileInstancedMeshes.white.count = 0;
+  tileInstancedMeshes.black.count = 0;
+  tileInstancedMeshes.origin.count = 0;
+  
+  // Tracking indices for each type
+  const indices = {
+    white: 0,
+    black: 0
+  };
+  
+  // Identity matrix for transformations
+  const matrix = new THREE.Matrix4();
+  
+  // Recreate instanced meshes from the chessboard object
+  for (const key in chessboard) {
+    const tile = chessboard[key];
+    const [x, z] = key.split(',').map(Number);
+    
+    // Set position matrix
+    matrix.setPosition(x * TILE_SIZE, 0, z * TILE_SIZE);
+    
+    if (x === 0 && z === 0) {
+      // Origin tile
+      tileInstancedMeshes.origin.setMatrixAt(0, matrix);
+      tileInstancedMeshes.origin.count = 1;
+    } else if (tile.type === 'white') {
+      // White tile
+      tileInstancedMeshes.white.setMatrixAt(indices.white, matrix);
+      indices.white++;
+    } else if (tile.type === 'black') {
+      // Black tile
+      tileInstancedMeshes.black.setMatrixAt(indices.black, matrix);
+      indices.black++;
+    }
+  }
+  
+  // Update instance counts
+  tileInstancedMeshes.white.count = indices.white;
+  tileInstancedMeshes.black.count = indices.black;
+  
+  // Update matrices
+  tileInstancedMeshes.white.instanceMatrix.needsUpdate = true;
+  tileInstancedMeshes.black.instanceMatrix.needsUpdate = true;
+  tileInstancedMeshes.origin.instanceMatrix.needsUpdate = true;
+  
+  console.log(`Rebuilt instanced meshes: ${indices.white} white tiles, ${indices.black} black tiles`);
 }
 
 // Add coordinate axes to help with orientation
@@ -624,6 +898,11 @@ function initKeyboardController() {
 function animate() {
   requestAnimationFrame(animate);
   
+  // Calculate frame time for performance tracking
+  const currentTime = Date.now();
+  const deltaTime = currentTime - lastFrameTime;
+  lastFrameTime = currentTime;
+  
   // Update controls
   controls.update();
   
@@ -635,7 +914,7 @@ function animate() {
   
   // Update keyboard controller
   if (keyboardController) {
-    keyboardController.update(Date.now());
+    keyboardController.update(currentTime);
   }
   
   // Render the scene
