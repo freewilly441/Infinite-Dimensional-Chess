@@ -2,6 +2,7 @@
  * Keyboard Controller for Chess Games
  * Handles keyboard navigation and interactions for both standard and n-dimensional chess
  */
+import * as THREE from 'three';
 
 class KeyboardController {
   constructor(config) {
