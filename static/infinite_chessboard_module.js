@@ -113,21 +113,8 @@ const STANDARD_CHESS_LAYOUT = [
   { type: PIECE_TYPES.ROOK, color: PIECE_COLORS.WHITE, position: { x: 7, z: 0 } }
 ];
 
-// Function to position camera at game start - make it accessible globally
-function positionCameraForGameStart() {
-  // Position camera to show the standard chess pieces from white's perspective
-  camera.position.set(3.5, 10, 7);
-  camera.lookAt(3.5, 0, -3.5);
-  
-  // Force controls to update with new camera position
-  controls.update();
-}
-
-// Make the function available globally
-window.positionCameraForGameStart = positionCameraForGameStart;
-
 // Initialize the scene
-export function init() {
+function init() {
   // Scene setup
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x121212);
@@ -139,9 +126,8 @@ export function init() {
     0.1,
     1000
   );
-  // Position camera to start with a good view of the standard chess pieces
-  camera.position.set(3.5, 10, 7);
-  camera.lookAt(3.5, 0, -3.5);
+  camera.position.set(15, 15, 15);
+  camera.lookAt(0, 0, 0);
   
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true });

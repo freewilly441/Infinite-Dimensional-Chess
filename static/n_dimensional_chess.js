@@ -206,19 +206,6 @@ let lastMoveComplexity = 0;
 // HTML element references
 let positionDisplay, gameStatusElement;
 
-// Function to position camera at game start - exported to window for access from HTML
-function positionCameraForGameStart() {
-  // Position camera to show pieces clearly from white's perspective
-  camera.position.set(0, 10, 15);
-  camera.lookAt(0, 0, 0);
-  
-  // Force controls to update with new camera position
-  controls.update();
-}
-
-// Make the function available globally
-window.positionCameraForGameStart = positionCameraForGameStart;
-
 // Initialize the application
 function init() {
   // Scene setup
@@ -232,9 +219,8 @@ function init() {
     0.1,
     1000
   );
-  // Initial camera position (will be adjusted after help menu closes)
-  // Start with the camera far above the board for a more dramatic entrance
-  camera.position.set(0, 30, 0);
+  // Position camera to show pieces at start - looking at the board from white's perspective
+  camera.position.set(0, 10, 15);
   camera.lookAt(0, 0, 0);
   
   // Renderer setup
