@@ -219,9 +219,9 @@ function init() {
     0.1,
     1000
   );
-  // Position camera to show pieces at start - looking at the board from white's perspective
-  camera.position.set(0, 10, 15);
-  camera.lookAt(0, 0, 0);
+  // Position camera to show pieces at start - looking at the standard chess pieces
+  camera.position.set(3.5, 10, 7);  // Position to see the entire standard 8x8 board
+  camera.lookAt(3.5, 0, -3.5);      // Look at the center of the standard chess board (between white and black pieces)
   
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true });
