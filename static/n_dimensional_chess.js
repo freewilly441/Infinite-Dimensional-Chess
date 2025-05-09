@@ -8,7 +8,7 @@
 // Import Three.js
 import * as THREE from 'three';
 import { OrbitControls } from 'OrbitControls';
-import { KeyboardController } from '/static/keyboard_controller.js';
+import { KeyboardController } from 'KeyboardController';
 
 // Constants
 const TILE_SIZE = 1.0;
