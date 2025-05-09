@@ -2980,8 +2980,7 @@ function centerOnActivePieces() {
   console.log("centerOnActivePieces called");
   
   // Get the current turn color
-  const currentColor = currentTurn;
-  console.log("Current turn color:", currentColor);
+  console.log("Current turn color:", currentTurn);
   
   // Find all pieces of the current color
   const activePieces = [];
@@ -2989,7 +2988,7 @@ function centerOnActivePieces() {
   // Iterate through all board positions to find pieces of the current turn
   for (const key in pieces) {
     const piece = pieces[key];
-    if (piece && piece.color === currentColor) {
+    if (piece && piece.color === currentTurn) {
       activePieces.push(piece);
     }
   }
@@ -3026,7 +3025,7 @@ function centerOnActivePieces() {
   
   // Determine the direction based on the current turn (look at the board from the player's side)
   const lookDirection = new THREE.Vector3(0, 0, 0);
-  if (currentColor === PIECE_COLORS.WHITE) {
+  if (currentTurn === PIECE_COLORS.WHITE) {
     // Look from the positive Z side for white
     centerPosition.z += 15;
     lookDirection.set(centerPosition.x, 0, centerPosition.z - 15);
@@ -3045,8 +3044,8 @@ function centerOnActivePieces() {
   // Show notification
   showMathNotification(
     "Camera Centered",
-    `(${currentColor === PIECE_COLORS.WHITE ? "White" : "Black"})`,
-    `Camera centered on ${currentColor === PIECE_COLORS.WHITE ? "White" : "Black"}'s pieces.`
+    `(${currentTurn === PIECE_COLORS.WHITE ? "White" : "Black"})`,
+    `Camera centered on ${currentTurn === PIECE_COLORS.WHITE ? "White" : "Black"}'s pieces.`
   );
 }
 
