@@ -1521,5 +1521,110 @@ function updateCapturedPiecesDisplay() {
   }
 }
 
+// Center camera on pieces of the current player's turn
+function centerOnActivePieces() {
+  // Get the current turn color
+  const currentColor = currentTurn;
+  
+  // Find all pieces of the current color
+  const activePieces = [];
+  
+  // Iterate through all board positions to find pieces of the current turn
+  for (const key in chessPieces) {
+    const piece = chessPieces[key];
+    if (piece && piece.color === currentColor) {
+      activePieces.push(piece);
+    }
+  }
+  
+  // If no pieces found, return
+  if (activePieces.length === 0) return;
+  
+  // Calculate the center position of all active pieces
+  const centerPosition = { x: 0, y: 0, z: 0 };
+  
+  activePieces.forEach(piece => {
+    const mesh = piece.mesh;
+    if (mesh) {
+      centerPosition.x += mesh.position.x;
+      centerPosition.y += mesh.position.y;
+      centerPosition.z += mesh.position.z;
+    }
+  });
+  
+  // Calculate the average position
+  centerPosition.x /= activePieces.length;
+  centerPosition.y /= activePieces.length;
+  centerPosition.z /= activePieces.length;
+  
+  // Adjust the y-coordinate to be slightly higher for a better view
+  centerPosition.y += 5;
+  
+  // Determine the direction based on the current turn (look at the board from the player's side)
+  const lookAtPosition = new THREE.Vector3();
+  
+  if (currentColor === PIECE_COLORS.WHITE) {
+    // Position the camera to look from white's side
+    centerPosition.z += 10;
+    lookAtPosition.set(centerPosition.x, 0, centerPosition.z - 10);
+  } else {
+    // Position the camera to look from black's side
+    centerPosition.z -= 10;
+    lookAtPosition.set(centerPosition.x, 0, centerPosition.z + 10);
+  }
+  
+  // Animate the camera movement
+  animateCameraMovement(centerPosition, lookAtPosition);
+  
+  // Update the status message
+  const statusElement = document.getElementById('current-turn');
+  if (statusElement) {
+    statusElement.innerHTML = `
+      ${currentColor === PIECE_COLORS.WHITE ? 'White' : 'Black'} 
+      <small class="text-muted">(Camera centered)</small>
+    `;
+    
+    // Reset the status after a delay
+    setTimeout(() => {
+      statusElement.textContent = currentColor === PIECE_COLORS.WHITE ? 'White' : 'Black';
+    }, 2000);
+  }
+}
+
+// Animate the camera movement to a new position
+function animateCameraMovement(targetPosition, lookAtPosition) {
+  const startPosition = camera.position.clone();
+  const startLookAt = controls.target.clone();
+  const duration = 1000; // milliseconds
+  const startTime = Date.now();
+  
+  function updateCameraPosition() {
+    const elapsedTime = Date.now() - startTime;
+    const progress = Math.min(elapsedTime / duration, 1);
+    
+    // Use cubic easing for smooth motion
+    const easedProgress = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+    
+    // Interpolate camera position
+    camera.position.lerpVectors(startPosition, targetPosition, easedProgress);
+    
+    // Interpolate look-at target
+    controls.target.lerpVectors(startLookAt, lookAtPosition, easedProgress);
+    
+    // Update camera and controls
+    controls.update();
+    
+    // Continue animation if not complete
+    if (progress < 1) {
+      requestAnimationFrame(updateCameraPosition);
+    }
+  }
+  
+  // Start the animation
+  updateCameraPosition();
+}
+
 // Start the application
 init();
