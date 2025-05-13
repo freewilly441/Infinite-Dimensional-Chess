@@ -363,7 +363,7 @@
           <button id="center-board-btn" class="btn btn-outline-light btn-sm w-100 mb-2">
             <i class="bi bi-camera me-1"></i> Center on Active Pieces
           </button>
-          <button id="help-btn" class="btn btn-info btn-lg w-100 fw-bold">
+          <button id="quick-guide-btn" class="btn btn-info btn-lg w-100 fw-bold">
             <i class="bi bi-question-circle-fill me-2"></i> HOW TO PLAY
           </button>
         </div>
@@ -472,11 +472,12 @@
   </script>
   
   <!-- Help Modal -->
-  <div class="modal fade" id="help-modal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+  <!-- Quick Guide Modal - Recreated from scratch -->
+  <div class="modal" id="quick-guide-modal" tabindex="-1" role="dialog" aria-labelledby="quickGuideModalLabel" style="z-index: 3000;">
+    <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="helpModalLabel">N-Dimensional Chess: Quick Guide</h5>
+          <h5 class="modal-title" id="quickGuideModalLabel">N-Dimensional Chess: Quick Guide</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -519,7 +520,7 @@
           <p class="small">For a full guide, see the README.md file.</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary close-modal-btn">Close</button>
         </div>
       </div>
     </div>
@@ -573,35 +574,81 @@
       initializeCollapsiblePanels();
     });
     
-    // Make the help button work properly
-    const helpBtn = document.getElementById('help-btn');
-    if (helpBtn) {
-      // Ensure parent events don't interfere with button click
-      helpBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        // Create and show the help modal
-        try {
-          const helpModalElement = document.getElementById('help-modal');
-          // Check if modal is already initialized
-          let helpModal = bootstrap.Modal.getInstance(helpModalElement);
-          if (!helpModal) {
-            helpModal = new bootstrap.Modal(helpModalElement, {
-              backdrop: true,
-              keyboard: true,
-              focus: true
-            });
-          }
-          helpModal.show();
-          console.log("Help modal triggered");
-        } catch (error) {
-          console.error("Error showing help modal:", error);
+    // Create a vanilla JavaScript modal implementation
+    function setupQuickGuideModal() {
+      const quickGuideBtn = document.getElementById('quick-guide-btn');
+      const quickGuideModal = document.getElementById('quick-guide-modal');
+      const closeModalBtn = document.querySelector('.close-modal-btn');
+      const closeIcon = document.querySelector('#quick-guide-modal .btn-close');
+      
+      // Show the modal when the button is clicked
+      if (quickGuideBtn) {
+        quickGuideBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          console.log("Quick guide button clicked");
+          showModal();
+        });
+      } else {
+        console.error("Quick guide button not found!");
+      }
+      
+      // Close button click
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+          hideModal();
+        });
+      }
+      
+      // Close icon click
+      if (closeIcon) {
+        closeIcon.addEventListener('click', function() {
+          hideModal();
+        });
+      }
+      
+      // Close on click outside
+      document.addEventListener('click', function(e) {
+        if (quickGuideModal.style.display === 'block' && !e.target.closest('.modal-content') && !e.target.closest('#quick-guide-btn')) {
+          hideModal();
         }
       });
-    } else {
-      console.error("Help button not found!");
+      
+      // Close on ESC key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && quickGuideModal.style.display === 'block') {
+          hideModal();
+        }
+      });
+      
+      // Show modal function
+      function showModal() {
+        console.log("Showing modal");
+        quickGuideModal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.style.zIndex = '2999';
+        document.body.appendChild(backdrop);
+      }
+      
+      // Hide modal function
+      function hideModal() {
+        console.log("Hiding modal");
+        quickGuideModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        
+        // Remove backdrop
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+          backdrop.remove();
+        }
+      }
     }
+    
+    // Initialize our custom modal
+    setupQuickGuideModal();
     
   // Function to initialize panel collapse/expand functionality
     function initializeCollapsiblePanels() {

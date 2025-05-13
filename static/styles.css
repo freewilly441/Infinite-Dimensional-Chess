@@ -192,17 +192,60 @@ canvas {
   pointer-events: none;
 }
 
-/* Ensure Bootstrap modals appear above other elements */
-.modal {
-  z-index: 2050 !important;
+/* Custom modal styling */
+#quick-guide-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3000;
+  display: none;
+  overflow-y: auto;
+}
+
+#quick-guide-modal .modal-dialog {
+  max-width: 800px;
+  margin: 30px auto;
+}
+
+#quick-guide-modal .modal-content {
+  background-color: rgba(25, 25, 35, 0.95);
+  border: 2px solid #0088ff;
+  box-shadow: 0 0 30px rgba(0, 120, 255, 0.5);
+  color: white;
+}
+
+#quick-guide-modal .modal-header {
+  background-color: rgba(0, 120, 255, 0.2);
+  border-bottom: 1px solid #0088ff;
+}
+
+#quick-guide-modal .modal-title {
+  color: #0088ff;
+  font-weight: bold;
+}
+
+#quick-guide-modal h6 {
+  color: #0088ff;
+  margin-top: 1rem;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(0, 136, 255, 0.3);
+  padding-bottom: 0.3rem;
+}
+
+#quick-guide-modal ul li strong {
+  color: #00ccff;
 }
 
 .modal-backdrop {
-  z-index: 2040 !important;
-}
-
-.modal-content {
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7) !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2999;
 }
 
 /* Fix for modals appearing behind other elements */
