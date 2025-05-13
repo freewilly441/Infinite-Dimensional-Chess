@@ -192,6 +192,15 @@ canvas {
   pointer-events: none;
 }
 
+/* Ensure Bootstrap modals appear above other elements */
+.modal {
+  z-index: 1050 !important;
+}
+
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
 .dimension-tooltip.visible {
   opacity: 1;
   transform: translateY(0);
