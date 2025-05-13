@@ -549,7 +549,68 @@
           }, 500);
         });
       }, 1500);
+      
+      // Initialize collapsible panels
+      initializeCollapsiblePanels();
     });
+    
+    // Function to initialize panel collapse/expand functionality
+    function initializeCollapsiblePanels() {
+      const panels = [
+        { 
+          header: document.getElementById('info-panel-header'),
+          body: document.getElementById('info-panel-body'),
+          toggle: document.getElementById('info-panel-toggle'),
+          panel: document.getElementById('info-panel'),
+          indicator: document.getElementById('info-panel-indicator')
+        },
+        { 
+          header: document.getElementById('controls-panel-header'),
+          body: document.getElementById('controls-panel-body'),
+          toggle: document.getElementById('controls-panel-toggle'),
+          panel: document.getElementById('controls-panel'),
+          indicator: document.getElementById('controls-panel-indicator')
+        },
+        { 
+          header: document.getElementById('math-panel-header'),
+          body: document.getElementById('math-panel-body'),
+          toggle: document.getElementById('math-panel-toggle'),
+          panel: document.getElementById('math-panel'),
+          indicator: document.getElementById('math-panel-indicator')
+        }
+      ];
+
+      // Set up event listeners for each panel
+      panels.forEach(panel => {
+        if (panel.header && panel.body && panel.toggle) {
+          // Initial state - expanded
+          panel.body.classList.remove('collapsed');
+          panel.toggle.classList.remove('collapsed');
+          panel.panel.classList.remove('panel-collapsed');
+          
+          // Toggle on click
+          panel.header.addEventListener('click', (e) => {
+            // Don't toggle if clicking a button inside the header (other than the toggle button)
+            if (e.target.tagName === 'BUTTON' && e.target !== panel.toggle) {
+              return;
+            }
+            
+            // Toggle collapse state
+            panel.body.classList.toggle('collapsed');
+            panel.toggle.classList.toggle('collapsed');
+            panel.panel.classList.toggle('panel-collapsed');
+          });
+          
+          // Toggle button specifically
+          panel.toggle.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent double triggering from header click
+            panel.body.classList.toggle('collapsed');
+            panel.toggle.classList.toggle('collapsed');
+            panel.panel.classList.toggle('panel-collapsed');
+          });
+        }
+      });
+    }
   </script>
 
   <!-- Dimensional Exploration Tooltip -->
