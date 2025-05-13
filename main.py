@@ -42,6 +42,10 @@ app = Flask(__name__, static_folder=STATIC_DIR, template_folder=TEMPLATES_DIR)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 
 @app.route("/")
+def landing():
+    return render_template("landing.html")
+
+@app.route("/infinite-chessboard")
 def index():
     return render_template("index.html")
 
@@ -51,12 +55,12 @@ def n_dimensional_chess():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('index.html'), 404
+    return render_template('landing.html'), 404
 
 @app.errorhandler(500)
 def server_error(e):
     logger.error(f"Server error: {e}")
-    return render_template('index.html'), 500
+    return render_template('landing.html'), 500
 
 # Run server
 if __name__ == "__main__":

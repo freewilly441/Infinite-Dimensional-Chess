@@ -151,8 +151,9 @@ function init() {
     0.1,
     1000
   );
-  camera.position.set(15, 15, 15);
-  camera.lookAt(0, 0, 0);
+  // Position camera to clearly see the standard chess board (8x8 area centered around 3.5, 0, -3.5)
+  camera.position.set(3.5, 12, 10);
+  camera.lookAt(3.5, 0, -3.5);
   
   // Renderer setup
   renderer = new THREE.WebGLRenderer({ antialias: true });
