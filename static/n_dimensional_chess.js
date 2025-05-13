@@ -741,6 +741,12 @@ function toggleDimension(dimension) {
     
     // Update the math panel with info about the highest remaining dimension
     updateMathPanel(activeDimensions.length);
+    
+    // Remove dimensional marker for this dimension
+    if (dimensionalMarkers[dimension]) {
+      scene.remove(dimensionalMarkers[dimension]);
+      dimensionalMarkers[dimension] = null;
+    }
   }
   
   // Regenerate board
