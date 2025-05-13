@@ -261,6 +261,14 @@ function init() {
   // Setup dimensional visualization controls
   setupDimensionalControls();
   
+  // Initialize dimensional markers for active dimensions
+  for (let d = 0; d < DEFAULT_DIMENSIONS; d++) {
+    addDimensionalMarker(d);
+  }
+  
+  // Setup tooltip interaction controls
+  setupTooltipControls();
+  
   // Reference to HTML elements
   positionDisplay = document.getElementById('position-display');
   gameStatusElement = document.getElementById('current-turn');
@@ -688,6 +696,9 @@ function toggleDimension(dimension) {
     
     // Update the math panel with info about this dimension
     updateMathPanel(dimension + 1);
+    
+    // Add dimensional marker for this dimension
+    addDimensionalMarker(dimension);
     
   } else {
     // Can't have fewer than 3 dimensions
