@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Dimensional Chess</title>
+  <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body {
+      background-color: #1c1c1c;
+      color: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .card {
+      background-color: rgba(33, 37, 41, 0.8);
+      border: 1px solid #2a2a2a;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    .card-img-top {
+      height: 200px;
+      object-fit: cover;
+      background-color: #343a40;
+    }
+    
+    .particles-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      animation: float linear infinite;
+    }
+    
+    @keyframes float {
+      0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+      }
+      100% {
+        transform: translateY(-2000px) translateX(100px) rotate(360deg);
+      }
+    }
+    
+    .title {
+      font-weight: 700;
+      font-size: 3rem;
+      margin-bottom: 3rem;
+      text-align: center;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+    }
+    
+    .btn-chess {
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      font-size: 1.1rem;
+      width: 100%;
+    }
+    
+    .card-img-overlay {
+      background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8));
+      display: flex;
+      align-items: flex-end;
+    }
+    
+    .chess-logo {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .chess-description {
+      height: 80px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles-container" id="particles-container"></div>
+  
+  <div class="container py-5">
+    <h1 class="title">Multi-Dimensional Chess Experience</h1>
+    
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <div class="card h-100">
+          <div class="card-header text-center">
+            <div class="chess-logo">♞</div>
+            <h3>Infinite Chessboard</h3>
+          </div>
+          <div class="card-body">
+            <p class="chess-description">Experience a procedurally generated infinite 3D chessboard that extends in all directions. Play standard chess with beautiful visuals and dynamic tile generation.</p>
+            <ul class="list-group list-group-flush mb-4">
+              <li class="list-group-item bg-transparent">✓ Infinite board generation</li>
+              <li class="list-group-item bg-transparent">✓ Standard chess rules</li>
+              <li class="list-group-item bg-transparent">✓ Performance optimized</li>
+            </ul>
+          </div>
+          <div class="card-footer">
+            <a href="/infinite-chessboard" class="btn btn-primary btn-chess">
+              <i class="bi bi-arrow-right-circle-fill me-2"></i>Play Infinite Chess
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-5">
+        <div class="card h-100">
+          <div class="card-header text-center">
+            <div class="chess-logo">♚</div>
+            <h3>N-Dimensional Chess</h3>
+          </div>
+          <div class="card-body">
+            <p class="chess-description">Explore chess in up to 6 dimensions with specialized hyperpieces and mind-bending movement rules. Experience mathematical concepts visualized through gameplay.</p>
+            <ul class="list-group list-group-flush mb-4">
+              <li class="list-group-item bg-transparent">✓ Up to 6 dimensions</li>
+              <li class="list-group-item bg-transparent">✓ Hyperpieces with dimensional powers</li>
+              <li class="list-group-item bg-transparent">✓ Mathematical insights</li>
+            </ul>
+          </div>
+          <div class="card-footer">
+            <a href="/n-dimensional-chess" class="btn btn-info btn-chess">
+              <i class="bi bi-box me-2"></i>Enter Higher Dimensions
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="text-center mt-5">
+      <p class="text-muted">Select a mode to begin your multi-dimensional chess journey</p>
+      <div class="mt-4">
+        <a href="https://github.com/replit-user/ndimensional-chess" target="_blank" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-github me-2"></i>View on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Create dimensional particles -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.getElementById('particles-container');
+      const particleCount = 50;
+      
+      for (let i = 0; i < particleCount; i++) {
+        createParticle();
+      }
+      
+      function createParticle() {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        
+        // Random properties
+        const size = Math.random() * 30 + 5;
+        const posX = Math.random() * window.innerWidth;
+        const posY = Math.random() * window.innerHeight + 500;
+        const duration = Math.random() * 120 + 80;
+        const delay = Math.random() * 40;
+        
+        // Random color from chess theme
+        const colors = [
+          'rgba(255, 255, 255, 0.2)',  // White
+          'rgba(33, 37, 41, 0.3)',     // Dark
+          'rgba(13, 110, 253, 0.2)',   // Blue
+          'rgba(25, 135, 84, 0.2)',    // Green
+          'rgba(255, 193, 7, 0.2)'     // Yellow
+        ];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Apply styles
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${posX}px`;
+        particle.style.top = `${posY}px`;
+        particle.style.backgroundColor = color;
+        particle.style.animationDuration = `${duration}s`;
+        particle.style.animationDelay = `${delay}s`;
+        
+        container.appendChild(particle);
+        
+        // Remove and recreate particles
+        setTimeout(() => {
+          particle.remove();
+          createParticle();
+        }, (duration + delay) * 1000);
+      }
+    });
+  </script>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
