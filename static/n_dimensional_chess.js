@@ -422,10 +422,27 @@ function setupDimensionalControls() {
       toggleBtn.classList.add('btn-outline');
     }
     
-    // Add event listener
+    // Add event listeners
     toggleBtn.addEventListener('click', () => {
       toggleDimension(d);
       toggleBtn.classList.toggle('active');
+    });
+    
+    // Add right-click event for dimensional tooltip
+    toggleBtn.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // Prevent default context menu
+      showDimensionalTooltip(d);
+    });
+    
+    // Add long-press for mobile
+    let pressTimer;
+    toggleBtn.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(() => {
+        showDimensionalTooltip(d);
+      }, 800);
+    });
+    toggleBtn.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
     });
     
     controlsDiv.appendChild(toggleBtn);
@@ -3083,6 +3100,240 @@ function animateCameraMovement(targetPosition, lookAtPosition) {
   // Start the animation
   updateCameraPosition();
 }
+
+// Dimensional Exploration Tooltip functionality
+let currentTooltipDimension = 0;
+let tooltipVisible = false;
+let dimensionalMarkers = [];
+
+// Show dimensional tooltip with information about the specified dimension
+function showDimensionalTooltip(dimension) {
+  const tooltip = document.getElementById('dimension-tooltip');
+  const colorDisplay = document.getElementById('tooltip-dimension-color');
+  const nameDisplay = document.getElementById('tooltip-dimension-name');
+  const descriptionDisplay = document.getElementById('tooltip-dimension-description');
+  const formulaDisplay = document.getElementById('tooltip-formula');
+  const factDisplay = document.getElementById('tooltip-fact');
+  const badgeDisplay = document.getElementById('tooltip-badge');
+  
+  // Update current dimension
+  currentTooltipDimension = dimension;
+  
+  // Get dimension color
+  const color = DIMENSION_COLORS[dimension % DIMENSION_COLORS.length];
+  const colorHex = `#${color.toString(16).padStart(6, '0')}`;
+  
+  // Get dimension info from mathematical concepts
+  const dimensionInfo = MATH_CONCEPTS[dimension + 1]; // +1 because dimensions are 0-indexed but MATH_CONCEPTS is 1-indexed
+  
+  // Update tooltip content
+  colorDisplay.style.backgroundColor = colorHex;
+  nameDisplay.textContent = `Dimension ${dimension + 1}: ${dimensionInfo.name}`;
+  descriptionDisplay.textContent = dimensionInfo.explanation;
+  formulaDisplay.innerHTML = dimensionInfo.formula;
+  factDisplay.textContent = dimensionInfo.fact;
+  badgeDisplay.textContent = `Dimension ${dimension + 1}/${MAX_DIMENSIONS}`;
+  
+  // Position tooltip near the mouse or center if not available
+  const event = window.event;
+  if (event && (event.clientX || event.clientY)) {
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    // Calculate position to avoid going off-screen
+    const tooltipWidth = 350; // Approximate width from CSS
+    const tooltipHeight = 300; // Approximate height
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Adjust x position to keep tooltip on screen
+    let posX = x + 20; // 20px offset from cursor
+    if (posX + tooltipWidth > windowWidth) {
+      posX = x - tooltipWidth - 20;
+    }
+    
+    // Adjust y position to keep tooltip on screen
+    let posY = y + 20;
+    if (posY + tooltipHeight > windowHeight) {
+      posY = y - tooltipHeight - 20;
+    }
+    
+    // Apply position
+    tooltip.style.left = `${posX}px`;
+    tooltip.style.top = `${posY}px`;
+  } else {
+    // Fallback to center positioning
+    tooltip.style.left = '50%';
+    tooltip.style.top = '50%';
+    tooltip.style.transform = 'translate(-50%, -50%)';
+  }
+  
+  // Show tooltip with animation
+  tooltip.classList.add('visible');
+  tooltipVisible = true;
+  
+  // Add 3D dimensional marker if not already present
+  addDimensionalMarker(dimension);
+  
+  // Setup event listeners for tooltip navigation
+  setupTooltipControls();
+}
+
+// Hide dimensional tooltip
+function hideDimensionalTooltip() {
+  const tooltip = document.getElementById('dimension-tooltip');
+  tooltip.classList.remove('visible');
+  tooltipVisible = false;
+}
+
+// Setup tooltip control buttons
+function setupTooltipControls() {
+  // Get tooltip elements
+  const closeBtn = document.getElementById('tooltip-close');
+  const prevBtn = document.getElementById('tooltip-prev');
+  const nextBtn = document.getElementById('tooltip-next');
+  
+  // Close button
+  closeBtn.onclick = () => {
+    hideDimensionalTooltip();
+  };
+  
+  // Previous dimension button
+  prevBtn.onclick = () => {
+    const prevDimension = (currentTooltipDimension - 1 + MAX_DIMENSIONS) % MAX_DIMENSIONS;
+    showDimensionalTooltip(prevDimension);
+  };
+  
+  // Next dimension button
+  nextBtn.onclick = () => {
+    const nextDimension = (currentTooltipDimension + 1) % MAX_DIMENSIONS;
+    showDimensionalTooltip(nextDimension);
+  };
+  
+  // Close on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tooltipVisible) {
+      hideDimensionalTooltip();
+    }
+  });
+  
+  // Close when clicking outside the tooltip
+  document.addEventListener('click', (e) => {
+    const tooltip = document.getElementById('dimension-tooltip');
+    if (tooltipVisible && !tooltip.contains(e.target) && e.target.tagName !== 'BUTTON') {
+      hideDimensionalTooltip();
+    }
+  });
+}
+
+// Add a 3D marker for a dimension in the scene
+function addDimensionalMarker(dimension) {
+  // Check if marker already exists for this dimension
+  if (dimensionalMarkers[dimension]) {
+    return;
+  }
+  
+  // Get the direction vector for this dimension
+  const direction = new THREE.Vector3();
+  if (dimension === 0) direction.x = 1;      // 1st dimension
+  else if (dimension === 1) direction.z = 1;  // 2nd dimension
+  else if (dimension === 2) direction.y = 1;  // 3rd dimension
+  else {
+    // For higher dimensions, use diagonal vectors with offset
+    direction.set(
+      dimension % 2 === 0 ? 1 : -1,
+      dimension % 3 === 0 ? 1 : -1,
+      dimension % 5 === 0 ? 1 : -1
+    ).normalize();
+  }
+  
+  // Get dimension color
+  const color = DIMENSION_COLORS[dimension % DIMENSION_COLORS.length];
+  
+  // Create a THREE.js sprite for the marker
+  const markerMaterial = new THREE.SpriteMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.8
+  });
+  
+  const marker = new THREE.Sprite(markerMaterial);
+  marker.scale.set(1.5, 1.5, 1.5);
+  
+  // Position the marker along the dimension axis, about 8 units out
+  marker.position.copy(direction.multiplyScalar(8));
+  marker.userData.dimension = dimension;
+  marker.userData.isMarker = true;
+  
+  // Add to scene
+  scene.add(marker);
+  
+  // Store reference
+  dimensionalMarkers[dimension] = marker;
+  
+  // Add a pulsing animation to make it noticeable
+  animateDimensionalMarker(marker);
+}
+
+// Animate dimensional marker with pulsing effect
+function animateDimensionalMarker(marker) {
+  const initialScale = 1.5;
+  const pulseAmount = 0.3;
+  const pulseDuration = 2000; // 2 seconds for full pulse cycle
+  
+  // Animation function
+  function pulse() {
+    const time = Date.now() % pulseDuration / pulseDuration;
+    const scale = initialScale + Math.sin(time * Math.PI * 2) * pulseAmount;
+    
+    marker.scale.set(scale, scale, scale);
+    
+    // Continue animation if marker still exists
+    if (marker.parent === scene) {
+      requestAnimationFrame(pulse);
+    }
+  }
+  
+  // Start animation
+  pulse();
+}
+
+// Add click detection for dimensional markers
+function checkMarkerClick(intersects) {
+  for (let i = 0; i < intersects.length; i++) {
+    const object = intersects[i].object;
+    
+    // Check if the clicked object is a dimensional marker
+    if (object.userData && object.userData.isMarker) {
+      const dimension = object.userData.dimension;
+      showDimensionalTooltip(dimension);
+      return true;
+    }
+  }
+  return false;
+}
+
+// Modify the onMouseClick function to check for marker clicks
+const originalOnMouseClick = onMouseClick;
+onMouseClick = function(event) {
+  // Calculate mouse position in normalized device coordinates (-1 to +1)
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  // Update the picking ray with the camera and mouse position
+  raycaster.setFromCamera(mouse, camera);
+  
+  // Get objects intersected by the ray
+  const intersects = raycaster.intersectObjects(scene.children, true);
+  
+  // Check if we clicked on a dimensional marker first
+  if (intersects.length > 0 && checkMarkerClick(intersects)) {
+    return; // If we clicked a marker, don't proceed with regular click handling
+  }
+  
+  // Otherwise, proceed with original click handling
+  originalOnMouseClick(event);
+};
 
 // Export the init function to start the application
 export { init };
