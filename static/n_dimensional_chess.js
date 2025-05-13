@@ -3352,5 +3352,179 @@ onMouseClick = function(event) {
   originalOnMouseClick(event);
 };
 
+// Easter Egg Discovery System
+// Track moves to detect the "secret pattern"
+let moveHistory = [];
+let easterEggActivated = false;
+const secretPattern = [
+  { piece: "knight", dimensions: 2 },  // Knight using 2 dimensions
+  { piece: "bishop", dimensions: 2 },  // Bishop using 2 dimensions
+  { piece: "queen", dimensions: 3 }    // Queen using 3 dimensions
+];
+
+// Initialize easter egg elements
+function initEasterEggSystem() {
+  // Setup the easter egg modal
+  const easterEggModal = document.getElementById('easter-egg-modal');
+  const closeBtn = document.querySelector('.easter-egg-close');
+  const cancelBtn = document.querySelector('.easter-egg-cancel-btn');
+  
+  // Close buttons for easter egg modal
+  if (closeBtn) {
+    closeBtn.addEventListener('click', hideEasterEgg);
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', hideEasterEgg);
+  }
+  
+  // Close modal when clicking outside
+  easterEggModal.addEventListener('click', function(e) {
+    if (e.target === easterEggModal) {
+      hideEasterEgg();
+    }
+  });
+  
+  // Easter egg cheat code (Konami code variant)
+  let konamiIndex = 0;
+  const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+  
+  document.addEventListener('keydown', function(e) {
+    if (e.code === konamiCode[konamiIndex]) {
+      konamiIndex++;
+      
+      if (konamiIndex === konamiCode.length) {
+        konamiIndex = 0;
+        showEasterEgg();
+      }
+    } else {
+      konamiIndex = 0;
+    }
+  });
+}
+
+// When a piece is moved, check for the easter egg pattern
+function checkForEasterEggPattern(piece, fromCoords, toCoords) {
+  if (easterEggActivated) return;
+  
+  // Count dimensions used in the move
+  const dimensionsUsed = new Set();
+  for (let i = 0; i < fromCoords.length; i++) {
+    if (fromCoords[i] !== toCoords[i]) {
+      dimensionsUsed.add(i);
+    }
+  }
+  
+  // Record this move
+  moveHistory.push({
+    piece: piece.type,
+    dimensions: dimensionsUsed.size
+  });
+  
+  // Keep only the last 3 moves
+  if (moveHistory.length > 3) {
+    moveHistory.shift();
+  }
+  
+  // Check if the pattern matches
+  if (moveHistory.length === 3) {
+    let matches = true;
+    
+    for (let i = 0; i < 3; i++) {
+      if (moveHistory[i].piece !== secretPattern[i].piece || 
+          moveHistory[i].dimensions !== secretPattern[i].dimensions) {
+        matches = false;
+        break;
+      }
+    }
+    
+    if (matches) {
+      showEasterEgg();
+    }
+  }
+}
+
+// Show the easter egg discovery
+function showEasterEgg() {
+  if (easterEggActivated) return;
+  easterEggActivated = true;
+  
+  // Create visual sparkle effects
+  createSparkleEffects();
+  
+  // Show the modal
+  const easterEggModal = document.getElementById('easter-egg-modal');
+  easterEggModal.style.display = 'flex';
+  
+  // Play a discovery sound if available
+  if (sounds.dimensionalRift) {
+    const sound = sounds.dimensionalRift.cloneNode();
+    sound.volume = 0.6;
+    sound.play();
+  }
+  
+  console.log("Easter Egg Discovered!");
+}
+
+// Hide the easter egg modal
+function hideEasterEgg() {
+  const easterEggModal = document.getElementById('easter-egg-modal');
+  easterEggModal.style.display = 'none';
+}
+
+// Create sparkle visual effects
+function createSparkleEffects() {
+  const container = document.body;
+  const particleCount = 50;
+  
+  for (let i = 0; i < particleCount; i++) {
+    setTimeout(() => {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      
+      // Random position
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight;
+      
+      // Random color
+      const hue = Math.random() * 360;
+      const color = `hsl(${hue}, 100%, 70%)`;
+      
+      sparkle.style.left = `${x}px`;
+      sparkle.style.top = `${y}px`;
+      sparkle.style.backgroundColor = color;
+      sparkle.style.boxShadow = `0 0 10px ${color}`;
+      sparkle.style.width = `${3 + Math.random() * 7}px`;
+      sparkle.style.height = sparkle.style.width;
+      
+      container.appendChild(sparkle);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        sparkle.remove();
+      }, 2000);
+    }, i * 40);
+  }
+}
+
+// Add easter egg initialization to main init
+const originalInit = init;
+init = function() {
+  originalInit();
+  initEasterEggSystem();
+};
+
+// Modify movePiece function to check for easter egg pattern
+const originalMovePiece = movePiece;
+movePiece = function(selectedPiece, newCoords) {
+  // Call the original function
+  const result = originalMovePiece(selectedPiece, newCoords);
+  
+  // Check for easter egg pattern after move
+  checkForEasterEggPattern(selectedPiece, selectedPiece.position, newCoords);
+  
+  return result;
+};
+
 // Export the init function to start the application
 export { init };
