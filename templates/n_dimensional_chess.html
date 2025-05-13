@@ -363,7 +363,7 @@
           <button id="center-board-btn" class="btn btn-outline-light btn-sm w-100 mb-2">
             <i class="bi bi-camera me-1"></i> Center on Active Pieces
           </button>
-          <button id="help-btn" class="btn btn-info btn-lg w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#help-modal">
+          <button id="help-btn" class="btn btn-info btn-lg w-100 fw-bold">
             <i class="bi bi-question-circle-fill me-2"></i> HOW TO PLAY
           </button>
         </div>
@@ -538,28 +538,70 @@
       
       // Show welcome modal automatically after a short delay
       setTimeout(() => {
-        const welcomeModal = new bootstrap.Modal(document.getElementById('welcome-modal'));
-        welcomeModal.show();
-        
-        // When welcome modal is closed, show help modal
-        document.getElementById('welcome-modal').addEventListener('hidden.bs.modal', function () {
-          setTimeout(() => {
-            const helpModal = new bootstrap.Modal(document.getElementById('help-modal'));
-            helpModal.show();
-          }, 500);
-        });
+        try {
+          const welcomeModalElement = document.getElementById('welcome-modal');
+          const welcomeModal = new bootstrap.Modal(welcomeModalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+          });
+          welcomeModal.show();
+          
+          // When welcome modal is closed, show help modal
+          welcomeModalElement.addEventListener('hidden.bs.modal', function () {
+            setTimeout(() => {
+              try {
+                const helpModalElement = document.getElementById('help-modal');
+                const helpModal = new bootstrap.Modal(helpModalElement, {
+                  backdrop: true,
+                  keyboard: true,
+                  focus: true
+                });
+                helpModal.show();
+                console.log("Help modal shown after welcome");
+              } catch (error) {
+                console.error("Error showing help modal after welcome:", error);
+              }
+            }, 500);
+          });
+        } catch (error) {
+          console.error("Error showing welcome modal:", error);
+        }
       }, 1500);
       
       // Initialize collapsible panels
       initializeCollapsiblePanels();
     });
     
-    // Make the help button work even when in a collapsible panel
-    document.getElementById('help-btn').addEventListener('click', function(e) {
-      e.stopPropagation(); // Prevent the click from being captured by panel header
-      const helpModal = new bootstrap.Modal(document.getElementById('help-modal'));
-      helpModal.show();
-    });
+    // Make the help button work properly
+    const helpBtn = document.getElementById('help-btn');
+    if (helpBtn) {
+      // Ensure parent events don't interfere with button click
+      helpBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        // Create and show the help modal
+        try {
+          const helpModalElement = document.getElementById('help-modal');
+          // Check if modal is already initialized
+          let helpModal = bootstrap.Modal.getInstance(helpModalElement);
+          if (!helpModal) {
+            helpModal = new bootstrap.Modal(helpModalElement, {
+              backdrop: true,
+              keyboard: true,
+              focus: true
+            });
+          }
+          helpModal.show();
+          console.log("Help modal triggered");
+        } catch (error) {
+          console.error("Error showing help modal:", error);
+        }
+      });
+    } else {
+      console.error("Help button not found!");
+    }
     
   // Function to initialize panel collapse/expand functionality
     function initializeCollapsiblePanels() {

@@ -194,11 +194,21 @@ canvas {
 
 /* Ensure Bootstrap modals appear above other elements */
 .modal {
-  z-index: 1050 !important;
+  z-index: 2050 !important;
 }
 
 .modal-backdrop {
-  z-index: 1040 !important;
+  z-index: 2040 !important;
+}
+
+.modal-content {
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Fix for modals appearing behind other elements */
+body.modal-open {
+  overflow: hidden;
+  padding-right: 0 !important;
 }
 
 .dimension-tooltip.visible {
