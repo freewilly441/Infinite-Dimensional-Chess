@@ -381,26 +381,27 @@
           <i class="bi bi-chevron-up"></i>
         </button>
       </div>
-      <p class="small">Toggle dimensions and adjust visualization</p>
-      
-      <div id="dimension-controls">
-        <!-- Dimension buttons will be generated here -->
-      </div>
-      
-      <div class="mt-3">
-        <h5>Dimension View Controls</h5>
-        <div class="mb-2">
-          <button id="add-dimension-btn" class="btn btn-success btn-sm">Add Dimension</button>
-          <button id="reset-dimensions-btn" class="btn btn-warning btn-sm">Reset Dimensions</button>
+      <div class="panel-body" id="controls-panel-body">
+        <p class="small">Toggle dimensions and adjust visualization</p>
+        
+        <div id="dimension-controls">
+          <!-- Dimension buttons will be generated here -->
         </div>
-        <div class="mb-2">
-          <select id="view-mode-select" class="form-select form-select-sm">
-            <option value="3d">3D View</option>
-            <option value="2d">2D View</option>
-            <option value="slice">Dimensional Slice View</option>
-          </select>
-        </div>
-        <div id="dimension-view-controls">
+        
+        <div class="mt-3">
+          <h5>Dimension View Controls</h5>
+          <div class="mb-2">
+            <button id="add-dimension-btn" class="btn btn-success btn-sm">Add Dimension</button>
+            <button id="reset-dimensions-btn" class="btn btn-warning btn-sm">Reset Dimensions</button>
+          </div>
+          <div class="mb-2">
+            <select id="view-mode-select" class="form-select form-select-sm">
+              <option value="3d">3D View</option>
+              <option value="2d">2D View</option>
+              <option value="slice">Dimensional Slice View</option>
+            </select>
+          </div>
+          <div id="dimension-view-controls">
           <div class="mb-2">
             <label for="x-dimension-select">X Axis:</label>
             <select id="x-dimension-select" class="form-select form-select-sm"></select>
@@ -436,15 +437,25 @@
     
     <!-- Mathematical Insights Panel -->
     <div id="math-panel">
-      <h4>Mathematical Insights</h4>
-      <div id="math-formula" class="math-formula">
-        <span id="current-formula">ℝⁿ</span>
+      <div class="panel-header" id="math-panel-header">
+        <h4>
+          Mathematical Insights
+          <span class="collapsed-indicator" id="math-panel-indicator">Panel collapsed</span>
+        </h4>
+        <button class="panel-toggle" id="math-panel-toggle">
+          <i class="bi bi-chevron-up"></i>
+        </button>
       </div>
-      <p id="math-explanation" class="small">
-        N-dimensional chess operates in Euclidean space with n-tuples (x₁, x₂, ..., xₙ) as coordinates.
-      </p>
-      <div class="math-facts">
-        <p id="math-fact">Dimensional complexity grows exponentially with each added dimension.</p>
+      <div class="panel-body" id="math-panel-body">
+        <div id="math-formula" class="math-formula">
+          <span id="current-formula">ℝⁿ</span>
+        </div>
+        <p id="math-explanation" class="small">
+          N-dimensional chess operates in Euclidean space with n-tuples (x₁, x₂, ..., xₙ) as coordinates.
+        </p>
+        <div class="math-facts">
+          <p id="math-fact">Dimensional complexity grows exponentially with each added dimension.</p>
+        </div>
       </div>
     </div>
   </div>
