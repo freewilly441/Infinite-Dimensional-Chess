@@ -522,5 +522,28 @@
       }, 1500);
     });
   </script>
+
+  <!-- Dimensional Exploration Tooltip -->
+  <div id="dimension-tooltip" class="dimension-tooltip">
+    <div class="dimension-tooltip-title">
+      <h4>
+        <span class="dimension-color" id="tooltip-dimension-color"></span>
+        <span id="tooltip-dimension-name">Dimension</span>
+      </h4>
+      <button class="dimension-tooltip-close" id="tooltip-close">&times;</button>
+    </div>
+    <div class="dimension-tooltip-content">
+      <p id="tooltip-dimension-description">Explore the properties of this dimension.</p>
+      <div class="dimension-tooltip-formula" id="tooltip-formula">ℝⁿ</div>
+      <div class="dimension-tooltip-fact" id="tooltip-fact">Each dimension adds a new degree of freedom to the system.</div>
+    </div>
+    <div class="dimension-tooltip-footer">
+      <div class="dimension-tooltip-nav">
+        <button id="tooltip-prev" title="Previous dimension">◀</button>
+        <button id="tooltip-next" title="Next dimension">▶</button>
+      </div>
+      <span class="dimension-tooltip-badge" id="tooltip-badge">Dimension 1/6</span>
+    </div>
+  </div>
 </body>
 </html>
