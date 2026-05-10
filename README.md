@@ -246,6 +246,6 @@ This includes, but is not limited to:
 - Commercial presentations or exhibitions
 
 To inquire about commercial licensing, please contact:
-- Timothy Winans – timothyrwinans@gmail.com
+- Timothy Winans – timothywinans@aethermarksystems.com
 
 No warranty is provided. Use at your own risk.
