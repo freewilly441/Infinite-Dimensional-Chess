@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Infinite Chessboard</title>
+  <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="./assets/styles.css">
+  <link rel="stylesheet" href="./mobile-touch.css">
+</head>
+<body>
+  <div class="overlay" id="loading-overlay">
+    <div class="spinner-container">
+      <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="mt-3">Loading infinite chessboard...</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="webgl-error" style="display: none;">
+    <div class="alert alert-danger" role="alert">
+      <h4 class="alert-heading">WebGL Error</h4>
+      <p>Your browser does not support WebGL or it is disabled. Please enable WebGL or use a browser that supports it.</p>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <div class="container">
+      <h3>Infinite Chessboard</h3>
+      <p>A procedurally generated infinite 3D chessboard.</p>
+      <a href="./n-dimensional-chess.html" class="btn btn-primary mb-3">Try N-Dimensional Chess</a>
+      <div class="controls-info">
+        <h5>Controls:</h5>
+        <ul>
+          <li><strong>1 Finger Drag:</strong> Rotate</li>
+          <li><strong>2 Finger Drag:</strong> Pan</li>
+          <li><strong>Pinch:</strong> Zoom</li>
+          <li><strong>Tap Piece:</strong> Select</li>
+        </ul>
+      </div>
+      <div class="position-info mt-2">
+        <p>Current Position: <span id="position-display">0, 0, 0</span></p>
+      </div>
+      <div class="game-status mt-2">
+        <h5>Game Status</h5>
+        <p>Current Turn: <span id="current-turn" class="badge bg-light">White</span></p>
+        <button id="center-board-btn" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-camera"></i> Center on Active Pieces
+        </button>
+      </div>
+      <div class="captured-pieces mt-2">
+        <h5>Captured Pieces</h5>
+        <div class="row">
+          <div class="col-6">
+            <p>White Captured:</p>
+            <div id="white-captured" class="captured-list"></div>
+          </div>
+          <div class="col-6">
+            <p>Black Captured:</p>
+            <div id="black-captured" class="captured-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/",
+        "KeyboardController": "./assets/keyboard_controller.js"
+      }
+    }
+  </script>
+
+  <script type="module" src="./assets/infinite_chessboard_module.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

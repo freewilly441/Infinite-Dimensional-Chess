@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>N-Dimensional Chess</title>
+  <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="./mobile-touch.css">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0c0c10;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    #help-modal .modal-content {
+      background-color: rgba(25, 25, 35, 0.95);
+      border: 2px solid #0088ff;
+      box-shadow: 0 0 20px rgba(0, 136, 255, 0.5);
+    }
+
+    #help-modal .modal-header {
+      background-color: rgba(0, 136, 255, 0.2);
+      border-bottom: 1px solid #0088ff;
+    }
+
+    #help-modal .modal-title {
+      color: #0088ff;
+      font-weight: bold;
+    }
+
+    #help-modal h6 {
+      color: #0088ff;
+      margin-top: 1rem;
+      font-weight: bold;
+      border-bottom: 1px solid rgba(0, 136, 255, 0.3);
+      padding-bottom: 0.3rem;
+    }
+
+    #help-modal ul {
+      margin-bottom: 1.2rem;
+    }
+
+    #help-modal ul li strong {
+      color: #00ccff;
+    }
+
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #loading-overlay h2 {
+      color: #00aaff;
+      margin-bottom: 20px;
+    }
+
+    .loading-spinner {
+      border: 5px solid rgba(0, 170, 255, 0.3);
+      border-radius: 50%;
+      border-top: 5px solid #00aaff;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #info-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      color: white;
+      max-width: 300px;
+      pointer-events: auto;
+    }
+
+    #controls-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      color: white;
+      max-width: 300px;
+      pointer-events: auto;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    #dimension-controls {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    #dimension-controls button {
+      margin: 2px;
+    }
+
+    #dimension-labels {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 10px;
+      pointer-events: auto;
+    }
+
+    .dimension-label {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    #captured-pieces {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      pointer-events: auto;
+    }
+
+    .captured-piece {
+      font-size: 20px;
+      margin-right: 5px;
+    }
+
+    .slice-control {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .slice-control input {
+      width: 100%;
+    }
+
+    .active {
+      border: 2px solid white !important;
+    }
+
+    #math-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      color: white;
+      width: 300px;
+      pointer-events: auto;
+      border: 1px solid #00aaff;
+    }
+
+    .math-formula {
+      background-color: rgba(0, 170, 255, 0.2);
+      border-radius: 5px;
+      padding: 8px;
+      margin: 10px 0;
+      font-family: 'Cambria Math', serif;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .math-facts {
+      font-style: italic;
+      font-size: 0.9em;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .dimensional-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 2px solid #00aaff;
+      border-radius: 10px;
+      padding: 20px;
+      color: white;
+      text-align: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+      max-width: 80%;
+    }
+
+    .welcome-content {
+      background-color: rgba(25, 25, 40, 0.95);
+      border: 3px solid #0088ff;
+      box-shadow: 0 0 30px rgba(0, 136, 255, 0.8);
+    }
+
+    .feature-icon {
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <h2>Loading N-Dimensional Chess</h2>
+    <div class="loading-spinner"></div>
+    <p>Initializing multi-dimensional space...</p>
+    <div class="mt-4 text-warning" id="load-error" style="display: none;">
+      <p><strong>Having trouble loading?</strong></p>
+      <ul class="text-start">
+        <li>Make sure WebGL is supported on your device</li>
+        <li>Try closing other apps to free memory</li>
+        <li>Check your internet connection (required for 3D libraries)</li>
+        <li>If errors persist, try restarting the app</li>
+      </ul>
+    </div>
+    <script>
+      setTimeout(() => {
+        const errorElement = document.getElementById('load-error');
+        if (document.getElementById('loading-overlay').style.display !== 'none') {
+          errorElement.style.display = 'block';
+        }
+      }, 10000);
+    </script>
+  </div>
+
+  <!-- Welcome Tutorial Modal -->
+  <div class="modal fade" id="welcome-modal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content welcome-content">
+        <div class="modal-header text-center bg-primary">
+          <h3 class="modal-title w-100 fw-bold" id="welcomeModalLabel">
+            Welcome to N-Dimensional Chess
+          </h3>
+        </div>
+        <div class="modal-body p-4">
+          <div class="welcome-image text-center mb-3">
+            <i class="bi bi-grid-3x3-gap-fill text-primary" style="font-size: 48px;"></i>
+            <i class="bi bi-arrow-right text-white mx-2" style="font-size: 24px;"></i>
+            <i class="bi bi-box text-info" style="font-size: 48px;"></i>
+            <i class="bi bi-arrow-right text-white mx-2" style="font-size: 24px;"></i>
+            <i class="bi bi-stars text-warning" style="font-size: 48px;"></i>
+          </div>
+
+          <h4 class="text-center text-info mb-3">Experience Chess Beyond 3 Dimensions</h4>
+
+          <div class="row mb-3">
+            <div class="col-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-hand-index-thumb-fill text-warning" style="font-size: 36px;"></i>
+              </div>
+              <h6>Touch Controls</h6>
+              <p class="small">Tap to select pieces, drag to rotate, pinch to zoom</p>
+            </div>
+            <div class="col-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-diagram-3-fill text-success" style="font-size: 36px;"></i>
+              </div>
+              <h6>Dimensional Play</h6>
+              <p class="small">Add up to 6 dimensions with special hyperpieces</p>
+            </div>
+            <div class="col-4 text-center">
+              <div class="feature-icon mb-2">
+                <i class="bi bi-calculator-fill text-info" style="font-size: 36px;"></i>
+              </div>
+              <h6>Math Depth</h6>
+              <p class="small">Explore formulas behind n-dimensional spaces</p>
+            </div>
+          </div>
+
+          <div class="text-center mt-3">
+            <p class="small">Tap "Start Playing" to begin, then use "HOW TO PLAY" for instructions.</p>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-primary btn-lg px-5" data-bs-dismiss="modal">
+            Start Playing <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UI Overlay -->
+  <div id="ui-overlay">
+    <!-- Dimensional Notification Popup -->
+    <div id="dimensional-notification" class="dimensional-notification">
+      <h3 id="notification-title">Dimensional Shift</h3>
+      <div id="notification-formula" class="math-formula">∞</div>
+      <p id="notification-text">Traveling through multidimensional space...</p>
+    </div>
+
+    <!-- Information Panel -->
+    <div id="info-panel">
+      <div class="panel-header" id="info-panel-header">
+        <h4>
+          N-Dimensional Chess
+          <span class="collapsed-indicator" id="info-panel-indicator">Panel collapsed</span>
+        </h4>
+        <button class="panel-toggle" id="info-panel-toggle">
+          <i class="bi bi-chevron-up"></i>
+        </button>
+      </div>
+      <div class="panel-body" id="info-panel-body">
+        <div>
+          <span id="position-display">Position: (0, 0, 0)</span>
+        </div>
+        <div class="mt-2">
+          <span>Current turn: </span>
+          <span id="current-turn" class="badge bg-light text-dark">White</span>
+        </div>
+        <div class="mt-2">
+          <span>Complexity Score: </span>
+          <span id="complexity-score" class="badge bg-info">0</span>
+        </div>
+        <div class="mt-3">
+          <button id="center-board-btn" class="btn btn-outline-light btn-sm w-100 mb-2">
+            <i class="bi bi-camera me-1"></i> Center on Active Pieces
+          </button>
+          <button id="quick-guide-btn" class="btn btn-info btn-lg w-100 fw-bold">
+            <i class="bi bi-question-circle-fill me-2"></i> HOW TO PLAY
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div id="controls-panel">
+      <div class="panel-header" id="controls-panel-header">
+        <h4>
+          Dimensional Controls
+          <span class="collapsed-indicator" id="controls-panel-indicator">Panel collapsed</span>
+        </h4>
+        <button class="panel-toggle" id="controls-panel-toggle">
+          <i class="bi bi-chevron-up"></i>
+        </button>
+      </div>
+      <div class="panel-body" id="controls-panel-body">
+        <p class="small">Toggle dimensions and adjust visualization</p>
+
+        <div id="dimension-controls">
+          <!-- Dimension buttons will be generated here -->
+        </div>
+
+        <div class="mt-3">
+          <h5>Dimension View Controls</h5>
+          <div class="mb-2">
+            <button id="add-dimension-btn" class="btn btn-success btn-sm">Add Dimension</button>
+            <button id="reset-dimensions-btn" class="btn btn-warning btn-sm">Reset Dimensions</button>
+          </div>
+          <div class="mb-2">
+            <select id="view-mode-select" class="form-select form-select-sm">
+              <option value="3d">3D View</option>
+              <option value="2d">2D View</option>
+              <option value="slice">Dimensional Slice View</option>
+            </select>
+          </div>
+          <div id="dimension-view-controls">
+            <div class="mb-2">
+              <label for="x-dimension-select">X Axis:</label>
+              <select id="x-dimension-select" class="form-select form-select-sm"></select>
+            </div>
+            <div class="mb-2">
+              <label for="z-dimension-select">Z Axis:</label>
+              <select id="z-dimension-select" class="form-select form-select-sm"></select>
+            </div>
+            <div class="mb-2">
+              <label for="y-dimension-select">Y Axis:</label>
+              <select id="y-dimension-select" class="form-select form-select-sm"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dimension Labels -->
+    <div id="dimension-labels">
+      <!-- Dimension labels will be generated here -->
+    </div>
+
+    <!-- Captured Pieces -->
+    <div id="captured-pieces">
+      <div class="mb-2">
+        <span>White captures: </span>
+        <div id="white-captured"></div>
+      </div>
+      <div>
+        <span>Black captures: </span>
+        <div id="black-captured"></div>
+      </div>
+    </div>
+
+    <!-- Mathematical Insights Panel -->
+    <div id="math-panel">
+      <div class="panel-header" id="math-panel-header">
+        <h4>
+          Mathematical Insights
+          <span class="collapsed-indicator" id="math-panel-indicator">Panel collapsed</span>
+        </h4>
+        <button class="panel-toggle" id="math-panel-toggle">
+          <i class="bi bi-chevron-up"></i>
+        </button>
+      </div>
+      <div class="panel-body" id="math-panel-body">
+        <div id="math-formula" class="math-formula">
+          <span id="current-formula">ℝⁿ</span>
+        </div>
+        <p id="math-explanation" class="small">
+          N-dimensional chess operates in Euclidean space with n-tuples (x₁, x₂, ..., xₙ) as coordinates.
+        </p>
+        <div class="math-facts">
+          <p id="math-fact">Dimensional complexity grows exponentially with each added dimension.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Maps for ES Modules — Three.js served from CDN, local game files from www/assets/ -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "OrbitControls": "https://unpkg.com/three@0.154.0/examples/jsm/controls/OrbitControls.js",
+        "KeyboardController": "./assets/keyboard_controller.js"
+      }
+    }
+  </script>
+
+  <!-- Quick Guide Modal -->
+  <div class="modal" id="quick-guide-modal" tabindex="-1" role="dialog" aria-labelledby="quickGuideModalLabel" style="z-index: 3000;">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickGuideModalLabel">N-Dimensional Chess: Quick Guide</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6>Touch Controls</h6>
+          <ul>
+            <li><strong>Select Piece:</strong> Tap on a chess piece</li>
+            <li><strong>Move:</strong> Tap on a highlighted tile</li>
+            <li><strong>Rotate View:</strong> Single finger drag</li>
+            <li><strong>Zoom:</strong> Pinch in/out with two fingers</li>
+            <li><strong>Pan:</strong> Two finger drag</li>
+          </ul>
+
+          <h6>Dimensions</h6>
+          <ul>
+            <li><strong>Toggle Dimensions:</strong> Use the colored dimension buttons (D1-D6)</li>
+            <li><strong>Change View:</strong> Select 2D, 3D, or Slice view from the dropdown</li>
+            <li><strong>Higher Dimensions:</strong> Dimensions beyond D3 allow for special movements</li>
+          </ul>
+
+          <h6>Hyperpieces</h6>
+          <ul>
+            <li><strong>Hyperrook:</strong> Moves along any dimensional axis</li>
+            <li><strong>Hyperbishop:</strong> Moves along dimensional diagonals</li>
+            <li><strong>Hyperknight:</strong> Makes L-shaped jumps through higher dimensions</li>
+          </ul>
+
+          <h6>Special Mechanics</h6>
+          <ul>
+            <li><strong>Dimensional Fatigue:</strong> Movement range decreases when using multiple dimensions</li>
+            <li><strong>Complexity Score:</strong> Higher scores for mathematically complex moves</li>
+          </ul>
+
+          <p class="small">For a full guide, see the README in the GitHub repository.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close-modal-btn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Easter Egg Modal -->
+  <div id="easter-egg-modal" class="easter-egg-modal">
+    <div class="easter-egg-content">
+      <div class="easter-egg-header">
+        <h4>🎉 Dimensional Discovery! 🎉</h4>
+        <button class="easter-egg-close">&times;</button>
+      </div>
+      <div class="easter-egg-body">
+        <p>You've discovered a secret dimensional portal!</p>
+        <p>This hyperspace connection leads to the advanced mathematical research of:</p>
+        <div class="easter-egg-highlight">
+          <h3>Dr. Manil Suri</h3>
+          <p>Mathematician & Author</p>
+        </div>
+        <p>Would you like to explore this dimension?</p>
+        <div class="easter-egg-buttons">
+          <a href="https://manilsuri.umbc.edu" target="_blank" class="easter-egg-visit-btn">Visit Dimension</a>
+          <button class="easter-egg-cancel-btn">Stay Here</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dimensional Exploration Tooltip -->
+  <div id="dimension-tooltip" class="dimension-tooltip">
+    <div class="dimension-tooltip-title">
+      <h4>
+        <span class="dimension-color" id="tooltip-dimension-color"></span>
+        <span id="tooltip-dimension-name">Dimension</span>
+      </h4>
+      <button class="dimension-tooltip-close" id="tooltip-close">&times;</button>
+    </div>
+    <div class="dimension-tooltip-content">
+      <p id="tooltip-dimension-description">Explore the properties of this dimension.</p>
+      <div class="dimension-tooltip-formula" id="tooltip-formula">ℝⁿ</div>
+      <div class="dimension-tooltip-fact" id="tooltip-fact">Each dimension adds a new degree of freedom to the system.</div>
+    </div>
+    <div class="dimension-tooltip-footer">
+      <div class="dimension-tooltip-nav">
+        <button id="tooltip-prev" title="Previous dimension">◀</button>
+        <button id="tooltip-next" title="Next dimension">▶</button>
+      </div>
+      <span class="dimension-tooltip-badge" id="tooltip-badge">Dimension 1/6</span>
+    </div>
+  </div>
+
+  <!-- Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Main application script -->
+  <script type="module">
+    import { init } from './assets/n_dimensional_chess.js';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init();
+
+      setTimeout(() => {
+        try {
+          const welcomeModalElement = document.getElementById('welcome-modal');
+          const welcomeModal = new bootstrap.Modal(welcomeModalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+          });
+          welcomeModal.show();
+
+          welcomeModalElement.addEventListener('hidden.bs.modal', function () {
+            setTimeout(() => {
+              try {
+                const helpModalElement = document.getElementById('help-modal');
+                const helpModal = new bootstrap.Modal(helpModalElement, {
+                  backdrop: true,
+                  keyboard: true,
+                  focus: true
+                });
+                helpModal.show();
+              } catch (error) {
+                console.error("Error showing help modal after welcome:", error);
+              }
+            }, 500);
+          });
+        } catch (error) {
+          console.error("Error showing welcome modal:", error);
+        }
+      }, 1500);
+
+      initializeCollapsiblePanels();
+    });
+
+    function setupQuickGuideModal() {
+      const quickGuideBtn = document.getElementById('quick-guide-btn');
+      const quickGuideModal = document.getElementById('quick-guide-modal');
+      const closeModalBtn = document.querySelector('.close-modal-btn');
+      const closeIcon = document.querySelector('#quick-guide-modal .btn-close');
+
+      if (quickGuideBtn) {
+        quickGuideBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showModal();
+        });
+      }
+
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => hideModal());
+      }
+
+      if (closeIcon) {
+        closeIcon.addEventListener('click', () => hideModal());
+      }
+
+      document.addEventListener('click', function(e) {
+        if (quickGuideModal.style.display === 'block' && !e.target.closest('.modal-content') && !e.target.closest('#quick-guide-btn')) {
+          hideModal();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && quickGuideModal.style.display === 'block') {
+          hideModal();
+        }
+      });
+
+      function showModal() {
+        quickGuideModal.style.display = 'block';
+        document.body.classList.add('modal-open');
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.style.zIndex = '2999';
+        document.body.appendChild(backdrop);
+      }
+
+      function hideModal() {
+        quickGuideModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+      }
+    }
+
+    setupQuickGuideModal();
+
+    function initializeCollapsiblePanels() {
+      const panels = [
+        {
+          header: document.getElementById('info-panel-header'),
+          body: document.getElementById('info-panel-body'),
+          toggle: document.getElementById('info-panel-toggle'),
+          panel: document.getElementById('info-panel'),
+          indicator: document.getElementById('info-panel-indicator')
+        },
+        {
+          header: document.getElementById('controls-panel-header'),
+          body: document.getElementById('controls-panel-body'),
+          toggle: document.getElementById('controls-panel-toggle'),
+          panel: document.getElementById('controls-panel'),
+          indicator: document.getElementById('controls-panel-indicator')
+        },
+        {
+          header: document.getElementById('math-panel-header'),
+          body: document.getElementById('math-panel-body'),
+          toggle: document.getElementById('math-panel-toggle'),
+          panel: document.getElementById('math-panel'),
+          indicator: document.getElementById('math-panel-indicator')
+        }
+      ];
+
+      panels.forEach(panel => {
+        if (panel.header && panel.body && panel.toggle) {
+          panel.body.classList.remove('collapsed');
+          panel.toggle.classList.remove('collapsed');
+          panel.panel.classList.remove('panel-collapsed');
+
+          panel.header.addEventListener('click', (e) => {
+            if ((e.target.tagName === 'BUTTON' && e.target !== panel.toggle) ||
+                e.target.hasAttribute('data-bs-toggle') ||
+                e.target.closest('[data-bs-toggle="modal"]')) {
+              return;
+            }
+            panel.body.classList.toggle('collapsed');
+            panel.toggle.classList.toggle('collapsed');
+            panel.panel.classList.toggle('panel-collapsed');
+          });
+
+          panel.toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.body.classList.toggle('collapsed');
+            panel.toggle.classList.toggle('collapsed');
+            panel.panel.classList.toggle('panel-collapsed');
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>

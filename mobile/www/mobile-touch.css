@@ -1,0 +1,99 @@
+/* ---- Mobile / touch overrides for Infinite Dimensional Chess ---- */
+
+/* Prevent browser text-selection during gameplay */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Tell the browser the canvas owns all touch gestures */
+canvas {
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent iOS rubber-band scroll */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum 44 px touch targets (Apple HIG / Material) */
+button,
+.btn,
+select,
+.panel-toggle {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Compact panels on narrow screens */
+@media (max-width: 600px) {
+  #info-panel,
+  #controls-panel {
+    max-width: 48vw;
+    font-size: 0.75rem;
+    padding: 10px;
+  }
+
+  #math-panel {
+    width: 90vw;
+    font-size: 0.75rem;
+  }
+
+  #captured-pieces {
+    font-size: 0.75rem;
+    padding: 8px;
+  }
+
+  .math-formula {
+    font-size: 14px;
+  }
+
+  /* Stack the welcome modal image icons vertically */
+  .welcome-image .bi {
+    font-size: 40px !important;
+  }
+}
+
+/* Respect device safe areas (notch / home bar) */
+#info-panel {
+  top: max(env(safe-area-inset-top), 20px);
+  left: max(env(safe-area-inset-left), 20px);
+}
+
+#controls-panel {
+  top: max(env(safe-area-inset-top), 20px);
+  right: max(env(safe-area-inset-right), 20px);
+}
+
+#dimension-labels {
+  bottom: max(env(safe-area-inset-bottom), 20px);
+  left: max(env(safe-area-inset-left), 20px);
+}
+
+#captured-pieces {
+  bottom: max(env(safe-area-inset-bottom), 20px);
+  right: max(env(safe-area-inset-right), 20px);
+}
+
+/* Tap-to-select visual hint banner */
+#mobile-tap-hint {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 136, 255, 0.85);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+#mobile-tap-hint.visible {
+  opacity: 1;
+}

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Node / Capacitor
+mobile/node_modules/
+mobile/package-lock.json
+
+# Capacitor generated platform folders (generate with: npx cap add android/ios)
+mobile/android/
+mobile/ios/
+mobile/.capacitor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
