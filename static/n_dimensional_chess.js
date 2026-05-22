@@ -133,6 +133,14 @@ const CAPTURE_MOVE_MATERIAL = new THREE.MeshStandardMaterial({
   opacity: 0.3
 });
 
+const HOVER_PIECE_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0xffdd44,
+  metalness: 0.5,
+  roughness: 0.2,
+  emissive: 0x443300,
+  emissiveIntensity: 0.3
+});
+
 const DIMENSION_COLORS = [
   0xff0000, // Red - X axis (1st dimension)
   0x0000ff, // Blue - Z axis (2nd dimension)
@@ -197,6 +205,11 @@ let capturedPieces = {
   [PIECE_COLORS.BLACK]: []
 };
 let moveHighlights = [];
+let hoveredPiece = null;
+let mouseDownX = 0;
+let mouseDownY = 0;
+let hasDragged = false;
+const DRAG_THRESHOLD = 5; // pixels of movement before treating as a camera drag
 let visualizationControls = {
   sliceCoordinates: Array(MAX_DIMENSIONS).fill(0) // For visualizing specific slices
 };
@@ -285,6 +298,8 @@ function init() {
   
   // Event listeners
   window.addEventListener('resize', onWindowResize);
+  renderer.domElement.addEventListener('mousedown', onMouseDown);
+  renderer.domElement.addEventListener('mousemove', onMouseMove);
   renderer.domElement.addEventListener('click', onMouseClick);
   
   // Center board button
@@ -781,6 +796,26 @@ function showMathNotification(title, formula, text) {
       notification.style.display = 'none';
     }, 500);
   }, 4000);
+}
+
+// Show a brief transient message at the bottom-center of the screen
+function showBriefMessage(message) {
+  let el = document.getElementById('game-brief-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'game-brief-msg';
+    el.style.cssText = [
+      'position:fixed', 'bottom:24px', 'left:50%', 'transform:translateX(-50%)',
+      'background:rgba(0,0,0,0.78)', 'color:#fff', 'padding:6px 18px',
+      'border-radius:8px', 'font-size:14px', 'font-family:inherit',
+      'pointer-events:none', 'transition:opacity 0.25s', 'opacity:0', 'z-index:9999'
+    ].join(';');
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.style.opacity = '1';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.opacity = '0'; }, 1400);
 }
 
 // Update the mathematical insights panel with information based on the current dimensions
@@ -1474,32 +1509,101 @@ function cleanupDistantTiles() {
   }
 }
 
+// Track mousedown position so we can distinguish clicks from camera drags
+function onMouseDown(event) {
+  mouseDownX = event.clientX;
+  mouseDownY = event.clientY;
+  hasDragged = false;
+}
+
+// Update drag flag and hover highlight on mouse move
+function onMouseMove(event) {
+  const dx = event.clientX - mouseDownX;
+  const dy = event.clientY - mouseDownY;
+  if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+    hasDragged = true;
+  }
+  updateHoverHighlight(event);
+}
+
+// Highlight the piece under the cursor and change cursor style
+function updateHoverHighlight(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  const ny = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  const hoverRay = new THREE.Raycaster();
+  hoverRay.setFromCamera(new THREE.Vector2(nx, ny), camera);
+  const intersects = hoverRay.intersectObjects(scene.children, false);
+
+  let newHovered = null;
+  for (const hit of intersects) {
+    for (const key in pieces) {
+      if (pieces[key].mesh === hit.object) {
+        newHovered = pieces[key];
+        break;
+      }
+    }
+    if (newHovered) break;
+  }
+
+  if (newHovered !== hoveredPiece) {
+    clearHoverHighlight();
+    hoveredPiece = newHovered;
+    if (hoveredPiece) {
+      hoveredPiece._savedMaterial = hoveredPiece.mesh.material;
+      hoveredPiece.mesh.material = HOVER_PIECE_MATERIAL;
+      renderer.domElement.style.cursor = 'pointer';
+    } else {
+      renderer.domElement.style.cursor = 'default';
+    }
+  }
+}
+
+// Restore the hovered piece's material and clear the reference
+function clearHoverHighlight() {
+  if (hoveredPiece) {
+    if (hoveredPiece._savedMaterial) {
+      hoveredPiece.mesh.material = hoveredPiece._savedMaterial;
+      hoveredPiece._savedMaterial = null;
+    }
+    hoveredPiece = null;
+  }
+  renderer.domElement.style.cursor = 'default';
+}
+
 // Handle mouse click event
 function onMouseClick(event) {
-  // Prevent click from interfering with orbital controls
+  // Suppress click when user was actually dragging the camera
+  if (hasDragged) {
+    hasDragged = false;
+    return;
+  }
+
   event.preventDefault();
-  
-  // Calculate mouse position in normalized device coordinates (-1 to +1)
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  
+
+  // Use canvas bounds so coordinates are correct regardless of page layout
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
   // Update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera);
-  
+
   // Get objects intersected by the ray
   const intersects = raycaster.intersectObjects(scene.children, false);
-  
+
   if (intersects.length > 0) {
     // Find which object was clicked (piece or tile)
     for (let i = 0; i < intersects.length; i++) {
       const object = intersects[i].object;
-      
+
       // Check if a piece was clicked
       if (isPieceClicked(object)) {
         handlePieceClick(object);
         return;
       }
-      
+
       // Check if a tile was clicked (and we have a selected piece)
       if (isTileClicked(object) && selectedPiece) {
         handleTileClick(object);
@@ -1507,7 +1611,7 @@ function onMouseClick(event) {
       }
     }
   }
-  
+
   // If nothing relevant was clicked, deselect current piece
   deselectCurrentPiece();
 }
@@ -1549,7 +1653,17 @@ function handlePieceClick(pieceObject) {
   
   // Check if it's this player's turn
   if (piece.color !== currentTurn) {
-    console.log("Not your turn!");
+    // If we have a piece selected and clicked an opponent piece, treat it as a capture attempt
+    if (selectedPiece) {
+      const isValidCapture = validMoves.some(move => move.join(',') === pieceKey);
+      if (isValidCapture) {
+        movePiece(selectedPiece, piece.coords);
+        deselectCurrentPiece();
+        switchTurn();
+        return;
+      }
+    }
+    showBriefMessage("Not your turn");
     return;
   }
   
@@ -1603,8 +1717,8 @@ function handleTileClick(tileObject) {
     // Switch turns
     switchTurn();
   } else {
-    // Not a valid move, deselect
-    deselectCurrentPiece();
+    // Not a valid move — keep piece selected so player can try another tile
+    showBriefMessage("Invalid move");
   }
 }
 
@@ -2211,8 +2325,9 @@ function deselectCurrentPiece() {
   if (selectedPiece && selectedPiece.highlight) {
     scene.remove(selectedPiece.highlight);
   }
-  
+
   clearValidMoveHighlights();
+  clearHoverHighlight();
   selectedPiece = null;
   validMoves = [];
 }
